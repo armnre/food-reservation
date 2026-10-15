@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { signQrToken, verifyQrToken } from '../server/services/reservation';
-import { tomanToRial, rialToToman } from '../lib/money';
+import { tomanToRial, rialToToman, formatToman, parseTomanInput } from '../lib/money';
+import { tehranDayKey, tehranMidnight, isSameTehranDay, mealInstant } from '../lib/tehran-time';
+
+/**
+ * تست‌های واحد واقعی — منطق دیتابیسی رزرو/کیف پول در src/tests/integration/ پوشش داده شده است.
+ * (تست‌های قبلی این فایل فقط literal چک می‌کردند و حذف شدند.)
+ */
 
 describe('QR Token — امضای HMAC', () => {
   it('توکن معتبر را تأیید می‌کند', () => {
@@ -11,122 +17,71 @@ describe('QR Token — امضای HMAC', () => {
   it('توکن دستکاری‌شده را رد می‌کند', () => {
     const token = signQrToken('res-123');
     const [id, sig] = token.split('.');
-    // تغییر id
     expect(verifyQrToken(`res-999.${sig}`)).toBeNull();
-    // تغییر sig
     expect(verifyQrToken(`${id}.${sig.slice(0, -2)}xx`)).toBeNull();
   });
 
-  it('فرمت nalid را رد می‌کند', () => {
+  it('فرمت نامعتبر را رد می‌کند', () => {
     expect(verifyQrToken('')).toBeNull();
     expect(verifyQrToken('no-dot')).toBeNull();
     expect(verifyQrToken('a.b.c')).toBeNull();
     expect(verifyQrToken('.sig')).toBeNull();
   });
 
-  it('دو توکن برای id یکسان هستند (deterministic)', () => {
+  it('دو توکن برای id یکسان یکسان‌اند (deterministic)', () => {
     expect(signQrToken('x')).toBe(signQrToken('x'));
   });
-
-  it('توکن‌های id متفاوت متفاوت‌اند', () => {
-    expect(signQrToken('a')).not.toBe(signQrToken('b'));
-  });
 });
 
-describe('Idempotency — کلیدهای unیک', () => {
-  it('کلید idempotency رزرو پایدار است', () => {
-    const key = (userId: string, itemId: string) => `reserve:${userId}:${itemId}`;
-    expect(key('u1', 'i1')).toBe(key('u1', 'i1'));
-    expect(key('u1', 'i1')).not.toBe(key('u1', 'i2'));
-    expect(key('u1', 'i1')).not.toBe(key('u2', 'i1'));
-  });
-
-  it('کلید idempotency پرداخت بر اساس paymentId است', () => {
-    const key = (paymentId: string) => `payment:${paymentId}`;
-    expect(key('p1')).toBe('payment:p1');
-    expect(key('p1')).not.toBe(key('p2'));
-  });
-
-  it('کلیدهای ledger برای خرید و فروش متفاوت‌اند', () => {
-    const purchase = (r: string) => `purchase:${r}`;
-    const sale = (r: string) => `sale:${r}`;
-    expect(purchase('r1')).not.toBe(sale('r1'));
-  });
-
-  it('کلیدهای ledger برای refund و refund_out متفاوت‌اند', () => {
-    const refund = (r: string) => `refund:${r}`;
-    const refundOut = (r: string) => `refund_out:${r}`;
-    expect(refund('r1')).not.toBe(refundOut('r1'));
-  });
-});
-
-describe('قانون رزرو — посмотреть capacité', () => {
-  it('رزروQuando ظرفیت تکمیل شده ممنوع است', () => {
-    const reservedCount = 10;
-    const capacity = 10;
-    expect(reservedCount >= capacity).toBe(true);
-  });
-
-  it('رزرو با ظرفیت باقی‌مانده مجاز است', () => {
-    const reservedCount = 9;
-    const capacity = 10;
-    expect(reservedCount < capacity).toBe(true);
-  });
-
-  it(' goto fenêtre — بازهٔ رزرو', () => {
-    const now = Date.now();
-    const opens = now - 3600_000;
-    const closes = now + 3600_000;
-    expect(now >= opens && now <= closes).toBe(true);
-    expect(now < opens).toBe(false);
-    expect(now > closes).toBe(false);
-  });
-
-  it(' fenêtre expirée — رد', () => {
-    const now = Date.now();
-    const closes = now - 1000;
-    expect(now > closes).toBe(true);
-  });
-});
-
-describe('قانون کیف پول — موجودی', () => {
-  it('برداشت بیشتر از موجودی ممنوع است', () => {
-    const balance = 100_000;
-    const price = 150_000;
-    expect(balance >= price).toBe(false);
-  });
-
-  it('برداشت برابر یا کمتر از موجودی مجاز است', () => {
-    const balance = 200_000;
-    const price = 150_000;
-    expect(balance >= price).toBe(true);
-  });
-
-  it('قیمت snapshot — betal hut indépendamment du changement ultérieur', () => {
-    const snapshot = 120_000;
-    const newPrice = 200_000;
-    // приклад: montant facturé = snapshot, pas newPrice
-    expect(snapshot).toBe(120_000);
-    expect(snapshot).not.toBe(newPrice);
-  });
-
-  it(' conversión تومان ↔ ریال — recharge', () => {
+describe('پول — تبدیل تومان و ریال', () => {
+  it('تبدیل دوطرفه درست است', () => {
     expect(tomanToRial(50_000)).toBe(500_000);
     expect(rialToToman(500_000)).toBe(50_000);
   });
-});
 
-describe('RAINBOW — règles métier retrait', () => {
-  it('مبلغ برداشت باید مثبت باشد', () => {
-    const isValid = (n: number) => Number.isInteger(n) && n > 0;
-    expect(isValid(10_000)).toBe(true);
-    expect(isValid(0)).toBe(false);
-    expect(isValid(-5)).toBe(false);
+  it('مبالغ اعشاری یا غیر صحیح رد می‌شوند', () => {
+    expect(() => tomanToRial(1.5)).toThrow();
+    expect(() => rialToToman(123.45)).toThrow();
   });
 
-  it('برداشت بیشتر از موجودی — مسدود می‌شود', () => {
-    const balance = 100_000;
-    const request = 150_000;
-    expect(balance >= request).toBe(false);
+  it('نمایش فارسی تومان', () => {
+    expect(formatToman(120_000)).toContain('تومان');
+  });
+
+  it('parseTomanInput ورودی فارسی را می‌پذیرد', () => {
+    const r = parseTomanInput('۵۰٬۰۰۰');
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.rials).toBe(500_000);
+  });
+});
+
+describe('زمان تهران — مستقل از TZ سرور', () => {
+  it('کلید روز تهران درست است', () => {
+    // 2026-06-15 12:00 UTC = 2026-06-15 15:30 تهران
+    expect(tehranDayKey(new Date('2026-06-15T12:00:00Z'))).toBe('2026-06-15');
+    // 2026-06-15 22:00 UTC = 2026-06-16 01:30 تهران — روز بعدی
+    expect(tehranDayKey(new Date('2026-06-15T22:00:00Z'))).toBe('2026-06-16');
+  });
+
+  it('نیمه‌شب تهران همان لحظهٔ درست است', () => {
+    const m = tehranMidnight('2026-06-15');
+    expect(m.toISOString()).toBe('2026-06-14T20:30:00.000Z');
+    expect(tehranDayKey(m)).toBe('2026-06-15');
+  });
+
+  it('isSameTehranDay مرز نیمه‌شب را درست تشخیص می‌دهد', () => {
+    const a = new Date('2026-06-15T23:59:00Z'); // 03:29 بامداد ۱۶ ژوئن تهران؟ نه — 03:29 روز ۱۶
+    const b = new Date('2026-06-15T10:00:00Z'); // 13:30 روز ۱۵ تهران
+    expect(isSameTehranDay(a, b)).toBe(false);
+    const c = new Date('2026-06-15T20:31:00Z'); // 00:01 روز ۱۶ تهران
+    const d = new Date('2026-06-15T22:00:00Z'); // 01:30 روز ۱۶ تهران
+    expect(isSameTehranDay(c, d)).toBe(true);
+  });
+
+  it('mealInstant ساعت وعده را به وقت تهران تفسیر می‌کند', () => {
+    const day = tehranMidnight('2026-06-15');
+    const slot = new Date('1970-01-01T11:30:00Z');
+    const instant = mealInstant(day, slot);
+    expect(instant.toISOString()).toBe('2026-06-15T08:00:00.000Z'); // 11:30 تهران = 08:00 UTC
   });
 });

@@ -167,7 +167,7 @@ export function MyReservationsClient({
                       <span className="text-[10px] text-[var(--color-foreground-muted)]">زمان لغو گذشته است</span>
                     )}
                     <span className="mr-auto text-[10px] text-[var(--color-foreground-muted)]">
-                      رزрошده: {item.reservedAt}
+                      رزروشده: {item.reservedAt}
                     </span>
                   </div>
                 </article>
@@ -211,7 +211,7 @@ export function MyReservationsClient({
         </section>
       )}
 
-      {/* diálogo QR */}
+      {/* دیالوگ QR */}
       <Dialog
         open={Boolean(qrItem)}
         onClose={() => setQrItem(null)}

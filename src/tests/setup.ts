@@ -8,5 +8,6 @@ import { randomBytes } from 'node:crypto';
 process.env.DATA_ENCRYPTION_KEY = randomBytes(32).toString('base64');
 process.env.DATA_HASH_KEY = randomBytes(32).toString('base64');
 process.env.DATABASE_URL = process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@127.0.0.1:5432/app_db';
-process.env.REDIS_URL = process.env.REDIS_URL ?? 'redis://127.0.0.1:6379';
+process.env.REDIS_URL = 'redis://127.0.0.1:1'; // بدون Redis — رد فوری و fallback حافظه
 process.env.TRUSTED_PROXY_HOPS = '0';
+process.env.KV_DRIVER = 'memory';

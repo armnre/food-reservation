@@ -7,8 +7,8 @@ import { and, eq, isNull, sql, desc, inArray } from 'drizzle-orm';
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { env } from '@/lib/env';
 import { audit, type AuditActor } from '@/lib/audit';
-import { BizError, getOrCreateWalletInTx, creditWalletInTx, debitWalletInTx, adjustSystemWalletInTx } from './wallet';
-import { toJalaliDateTime } from '@/lib/jalali';
+import { BizError, getOrCreateWalletInTx, getSystemWalletInTx, recordTransactionInTx } from './wallet';
+import { toJalaliDateTime, isSameTehranDay, todayTehran } from '@/lib/jalali';
 import QRCode from 'qrcode';
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -66,11 +66,16 @@ export async function getUserCustomerGroup(userId: string): Promise<string> {
 export async function createReservation(input: {
   userId: string;
   menuItemId: string;
+  /** کلید یکتای این «تلاش» — UUID که فرم برای هر درخواست می‌سازد (تکرار همان تلاش فقط یک رزرو می‌سازد) */
+  idempotencyKey: string;
   actor: AuditActor;
 }) {
-  const idempotencyKey = `reserve:${input.userId}:${input.menuItemId}`;
+  const idempotencyKey = input.idempotencyKey;
+  if (!/^[0-9a-f-]{8,64}$/i.test(idempotencyKey)) {
+    return { ok: false as const, error: 'کلید idempotency نامعتبر است' };
+  }
 
-  // idempotency — درخواست تکراری همان رزرو را Charge دوباره نمی‌دهد
+  // idempotency — تکرار همان تلاش، رزرو موجود را برمی‌گرداند و دوباره کسر نمی‌کند
   const existing = await db.select().from(reservations)
     .where(eq(reservations.idempotencyKey, idempotencyKey))
     .limit(1);
@@ -78,44 +83,26 @@ export async function createReservation(input: {
     return { ok: true as const, reservation: existing[0], idempotent: true };
   }
 
-  const itemRows = await db.select().from(menuItems).where(eq(menuItems.id, input.menuItemId)).limit(1);
-  const item = itemRows[0];
-  if (!item) return { ok: false as const, error: 'آیتم منو یافت نشد' };
-
-  const menuRows = await db.select().from(menus).where(eq(menus.id, item.menuId)).limit(1);
-  const menu = menuRows[0];
-  if (!menu) return { ok: false as const, error: 'منو یافت نشد' };
-  if (menu.status !== 'PUBLISHED') {
-    return { ok: false as const, error: 'این منو هنوز منتشر نشده است' };
-  }
-
-  const now = new Date();
-  if (menu.reservationOpensAt && now < menu.reservationOpensAt) {
-    return { ok: false as const, error: 'زمان رزرو این وعده هنوز شروع نشده است' };
-  }
-  if (menu.reservationClosesAt && now > menu.reservationClosesAt) {
-    return { ok: false as const, error: 'زمان رزرو این وعده به پایان رسیده است' };
+  // اگر کاربر همین حالا رزرو فعال برای این آیتم دارد، بدون کسر دوباره همان را برگردان
+  const activeAlready = await db.select().from(reservations)
+    .where(and(
+      eq(reservations.userId, input.userId),
+      eq(reservations.menuItemId, input.menuItemId),
+      eq(reservations.status, 'CONFIRMED'),
+    ))
+    .limit(1);
+  if (activeAlready[0]) {
+    return { ok: true as const, reservation: activeAlready[0], idempotent: true };
   }
 
   const group = await getUserCustomerGroup(input.userId);
-
-  const priceRows = await db.select().from(menuItemPrices)
-    .where(and(
-      eq(menuItemPrices.menuItemId, input.menuItemId),
-      eq(menuItemPrices.customerGroup, group as never),
-    ))
-    .limit(1);
-  if (!priceRows[0]) {
-    return { ok: false as const, error: 'این غذا برای گروه شما تعریف نشده است' };
-  }
-  const price = priceRows[0].priceRials;
-
   const reservationId = randomUUID();
   const qrToken = signQrToken(reservationId);
+  let priceRials = 0;
 
   try {
     const reservation = await db.transaction(async (tx) => {
-      // قفل ردیف آیتم منو
+      // همهٔ چک‌ها داخل تراکنش و زیر قفل ردیف آیتم (فاز ۳-۳)
       const locked = await tx.select().from(menuItems)
         .where(eq(menuItems.id, input.menuItemId))
         .for('update');
@@ -125,18 +112,40 @@ export async function createReservation(input: {
         throw new BizError('ظرفیت این غذا تکمیل شده است');
       }
 
-      //город débit کاربر
-      const userWallet = await getOrCreateWalletInTx(tx, input.userId);
-      await debitWalletInTx(
-        tx, userWallet.id, price, 'PURCHASE', reservationId,
-        `purchase:${reservationId}`, 'رزرو غذا',
-      );
+      const menuRows = await tx.select().from(menus).where(eq(menus.id, lockedItem.menuId)).limit(1);
+      const menu = menuRows[0];
+      if (!menu) throw new BizError('منو یافت نشد');
+      if (menu.status !== 'PUBLISHED') throw new BizError('این منو هنوز منتشر نشده است');
+      const now = new Date();
+      if (menu.reservationOpensAt && now < menu.reservationOpensAt) {
+        throw new BizError('زمان رزرو این وعده هنوز شروع نشده است');
+      }
+      if (menu.reservationClosesAt && now > menu.reservationClosesAt) {
+        throw new BizError('زمان رزرو این وعده به پایان رسیده است');
+      }
 
-      // tazkqiye TREASURY
-      await adjustSystemWalletInTx(
-        tx, 'TREASURY', price, 'SALE', reservationId,
-        `sale:${reservationId}`, 'فروش غذا',
-      );
+      const priceRows = await tx.select().from(menuItemPrices)
+        .where(and(
+          eq(menuItemPrices.menuItemId, input.menuItemId),
+          eq(menuItemPrices.customerGroup, group as never),
+        ))
+        .limit(1);
+      if (!priceRows[0]) throw new BizError('این غذا برای گروه شما تعریف نشده است');
+      const price = priceRows[0].priceRials;
+      priceRials = price;
+
+      // دفتر کل دوطرفه — کاربر −قیمت و TREASURY +قیمت در یک تراکنش با جمع صفر
+      const userWallet = await getOrCreateWalletInTx(tx, input.userId);
+      const treasury = await getSystemWalletInTx(tx, 'TREASURY');
+      await recordTransactionInTx(tx, {
+        idempotencyKey: `reserve:${reservationId}`,
+        referenceId: reservationId,
+        description: 'رزرو غذا',
+        legs: [
+          { walletId: userWallet.id, amountRials: -price, entryType: 'PURCHASE', description: 'رزرو غذا' },
+          { walletId: treasury.id, amountRials: price, entryType: 'SALE', description: 'فروش غذا' },
+        ],
+      });
 
       // افزایش شمارنده رزرو
       await tx.update(menuItems)
@@ -164,17 +173,25 @@ export async function createReservation(input: {
       action: 'reservation:created',
       entityType: 'reservation',
       entityId: reservation.id,
-      after: { menuItemId: input.menuItemId, priceRials: price, group },
+      after: { menuItemId: input.menuItemId, priceRials, group },
     });
 
     return { ok: true as const, reservation, idempotent: false };
   } catch (e) {
     if (e instanceof BizError) return { ok: false as const, error: e.message };
-    // race: unique constraint — резرو همزمان
+    // تداخل هم‌زمان: تکرار همان تلاش (کلید یکتا) یا رزرو فعال هم‌زمان برای همین آیتم
     const dup = await db.select().from(reservations)
       .where(eq(reservations.idempotencyKey, idempotencyKey))
       .limit(1);
     if (dup[0]) return { ok: true as const, reservation: dup[0], idempotent: true };
+    const active = await db.select().from(reservations)
+      .where(and(
+        eq(reservations.userId, input.userId),
+        eq(reservations.menuItemId, input.menuItemId),
+        eq(reservations.status, 'CONFIRMED'),
+      ))
+      .limit(1);
+    if (active[0]) return { ok: true as const, reservation: active[0], idempotent: true };
     throw e;
   }
 }
@@ -220,18 +237,18 @@ export async function cancelReservation(input: {
         throw new BizError('این رزرو قابل لغو نیست');
       }
 
-      // remboursement کاربر
+      // دفتر کل دوطرفه — کاربر +قیمت و TREASURY −قیمت
       const userWallet = await getOrCreateWalletInTx(tx, input.userId);
-      await creditWalletInTx(
-        tx, userWallet.id, r.priceSnapshotRials, 'REFUND', r.id,
-        `refund:${r.id}`, 'لغو رزرو غذا',
-      );
-
-      // کسر از TREASURY
-      await adjustSystemWalletInTx(
-        tx, 'TREASURY', -r.priceSnapshotRials, 'REFUND', r.id,
-        `refund_out:${r.id}`, 'بازگشت فروش غذا',
-      );
+      const treasury = await getSystemWalletInTx(tx, 'TREASURY');
+      await recordTransactionInTx(tx, {
+        idempotencyKey: `cancel:${r.id}`,
+        referenceId: r.id,
+        description: 'لغو رزرو غذا',
+        legs: [
+          { walletId: userWallet.id, amountRials: r.priceSnapshotRials, entryType: 'REFUND', description: 'بازپرداخت لغو رزرو' },
+          { walletId: treasury.id, amountRials: -r.priceSnapshotRials, entryType: 'REFUND', description: 'بازگشت فروش غذا' },
+        ],
+      });
 
       // کاهش شمارنده
       await tx.update(menuItems)
@@ -283,11 +300,8 @@ export async function scanReservation(qrToken: string) {
   const userRows = await db.select().from(users).where(eq(users.id, r.userId)).limit(1);
   const user = userRows[0];
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const menuDay = menu ? new Date(menu.date) : null;
-  if (menuDay) menuDay.setHours(0, 0, 0, 0);
-  const isToday = menuDay?.getTime() === today.getTime();
+  // «امروز» یعنی امروزِ تقویمی تهران — مستقل از TZ سرور
+  const isToday = menu ? isSameTehranDay(new Date(), new Date(menu.date)) : false;
 
   return {
     ok: true as const,
@@ -342,7 +356,7 @@ export async function markReservationUsed(input: {
   };
 }
 
-/* ─────────────Sede查询 — رزروهای من ───────────── */
+/* ─────────────کوئری — رزروهای من ───────────── */
 
 export async function getMyReservations(userId: string) {
   const rows = await db.select().from(reservations)

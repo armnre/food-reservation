@@ -2,12 +2,13 @@ import { verify, hash } from 'argon2';
 import { randomInt, randomBytes } from 'node:crypto';
 import { db } from '@/db';
 import { users, studentProfiles, staffProfiles, sessions, loginAttempts } from '@/db/schema';
-import { and, eq, gt, isNull, or, sql } from 'drizzle-orm';
+import { and, eq, gt, isNull, or, sql, lt } from 'drizzle-orm';
 import { encryptSecret, decryptSecret, blindIndex, safeEqual, hashToken, generateToken } from '@/lib/crypto';
 import { normalizeNationalCode, normalizeStudentNumber, validatePersonalPassword, generateTemporaryPassword, toLatinDigits } from '@/lib/validation';
 import { kvGet, kvSet, kvDel, kvIncrWindow, kvTake, kvTtl } from '@/lib/rate-limit';
 import { audit, actorFromUser, type AuditActor } from '@/lib/audit';
 import { env } from '@/lib/env';
+import { withArgon2Gate, ARGON2_OPTIONS } from '@/lib/argon2-gate';
 
 /* ───────────── ثابت‌ها ───────────── */
 
@@ -15,6 +16,8 @@ export const LOCK_WINDOW_SECONDS = 15 * 60; // ۱۵ دقیقه
 export const LOCK_THRESHOLD = 5; // ۵ تلاش ناموفق روی (شناسه + IP)
 export const CAPTCHA_FROM_ATTEMPT = 3; // کپچا از تلاش سوم
 export const SUSPICIOUS_THRESHOLD = 30; // بیش از ۳۰ شکست در ۱۵ دقیقه روی حساب
+export const IDENTIFIER_MAX_LENGTH = 64; // سقف طول شناسه ورود
+export const IP_RATE_LIMIT = 100; // حداکثر تلاش ورود از هر IP در پنجره
 
 /**
  * hash ساختگی و ثابت — برای کاربر ناموجود هم argon2.verify اجرا می‌شود
@@ -35,11 +38,15 @@ async function getDummyHash(): Promise<string> {
 
 async function burnVerifyTime(password: string): Promise<false> {
   try {
-    await verify(await getDummyHash(), password);
+    await withArgon2Gate(async () => verify(await getDummyHash(), password));
   } catch {
     /* ignore */
   }
   return false;
+}
+
+function ipKey(ip: string): string {
+  return `login:ip:${ip}`;
 }
 
 /* ───────────── کلیدهای شمارش ───────────── */
@@ -179,6 +186,20 @@ const GENERIC_ERROR = 'نام کاربری یا رمز عبور اشتباه ا�
 export async function login(input: LoginInput): Promise<LoginOutcome> {
   const identifier = toLatinDigits(input.identifier).trim();
   const actor: AuditActor = { id: null, role: null, ip: input.ip, userAgent: input.userAgent ?? null };
+
+  // رد زودهنگام ورودی نامعتبر — قبل از هر درج در login_attempts و قبل از argon2
+  if (identifier.length === 0 || identifier.length > IDENTIFIER_MAX_LENGTH || input.password.length > 256) {
+    const lock = await getLockState(identifier.slice(0, IDENTIFIER_MAX_LENGTH), input.ip);
+    return { ok: false, error: 'نام کاربری یا رمز عبور اشتباه است', lock };
+  }
+
+  // محدودیت نرخ به تفکیک IP — یک IP نباید بتواند کل سامانه را قفل کند
+  const ipAttempts = await kvIncrWindow(ipKey(input.ip), LOCK_WINDOW_SECONDS);
+  if (ipAttempts > IP_RATE_LIMIT) {
+    const lock = await getLockState(identifier, input.ip);
+    return { ok: false, error: 'تعداد درخواست‌های ورود از این نشانی بیش از حد مجاز است. لطفاً بعداً تلاش کنید.', lock };
+  }
+
   const [attempt] = await db.insert(loginAttempts).values({identifier,ip:input.ip,success:false}).returning({id:loginAttempts.id});
   const lock = await getLockState(identifier,input.ip);
   if(lock.locked) return {ok:false,error:'تلاش‌های ورود از این دستگاه بیش از حد مجاز است. لطفاً ۱۵ دقیقه دیگر تلاش کنید.',lock};
@@ -252,13 +273,38 @@ export async function revokeAllSessions(userId: string, exceptSessionId?: string
   return result.rowCount ?? 0;
 }
 
+/**
+ * تمدید نشست (sliding) با دو قید:
+ *  - lastSeenAt حداکثر هر ۵ دقیقه به‌روز می‌شود (کاهش UPDATEهای بی‌مورد)
+ *  - انقضا هرگز از «سقف مطلق عمر از لحظهٔ ایجاد» عبور نمی‌کند
+ */
 export async function touchSession(sessionId: string): Promise<void> {
-  await db.update(sessions).set({ lastSeenAt: new Date(), expiresAt: new Date(Date.now() + env.sessionTtlHours * 3600 * 1000) }).where(eq(sessions.id, sessionId));
+  await db.execute(sql`
+    UPDATE sessions SET
+      last_seen_at = CASE WHEN last_seen_at < now() - interval '5 minutes' THEN now() ELSE last_seen_at END,
+      expires_at = LEAST(
+        now() + (${env.sessionTtlHours} || ' hours')::interval,
+        created_at + (${env.sessionAbsoluteTtlHours} || ' hours')::interval
+      )
+    WHERE id = ${sessionId}
+  `);
+}
+
+/** پاک‌سازی دوره‌ای: نشست‌های منقضی/ابطال‌شدهٔ کهنه و تلاش‌های ورود قدیمی‌تر از ۳۰ روز */
+export async function cleanupExpiredSessionsAndLoginAttempts(): Promise<{ sessions: number; attempts: number }> {
+  const cutoff = new Date(Date.now() - 30 * 24 * 3600 * 1000);
+  const s = await db.delete(sessions)
+    .where(sql`${sessions.expiresAt} < now() - interval '7 days' OR ${sessions.revokedAt} < ${cutoff}`)
+    .returning({ id: sessions.id });
+  const a = await db.delete(loginAttempts)
+    .where(lt(loginAttempts.createdAt, cutoff))
+    .returning({ id: loginAttempts.id });
+  return { sessions: s.length, attempts: a.length };
 }
 
 /* ───────────── تعویض رمز ───────────── */
 
-export async function changeOwnPassword(userId: string, currentPassword: string, newPassword: string, actor: AuditActor) {
+export async function changeOwnPassword(userId: string, currentPassword: string, newPassword: string, actor: AuditActor, currentSessionId?: string) {
   const rows = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   const user = rows[0];
   if (!user) return { ok: false as const, error: 'کاربر یافت نشد' };
@@ -267,7 +313,7 @@ export async function changeOwnPassword(userId: string, currentPassword: string,
   if (user.passwordHash === null) {
     return { ok: false as const, error: 'برای تعیین رمز شخصی، ابتدا باید با کد ملی وارد شوید' };
   }
-  currentOk = await verify(user.passwordHash, currentPassword);
+  currentOk = await withArgon2Gate(() => verify(user.passwordHash as string, currentPassword));
   if (!currentOk) return { ok: false as const, error: 'رمز فعلی اشتباه است' };
 
   const studentRows = await db.select({ nc: studentProfiles.nationalCode, sn: studentProfiles.studentNumber })
@@ -284,17 +330,19 @@ export async function changeOwnPassword(userId: string, currentPassword: string,
   if (problem) return { ok: false as const, error: problem };
 
   await db.update(users).set({
-    passwordHash: await hash(newPassword, { type: 2, memoryCost: 65536, timeCost: 3 }),
+    passwordHash: await withArgon2Gate(() => hash(newPassword, ARGON2_OPTIONS)),
     mustChangePassword: false,
     updatedAt: new Date(),
   }).where(eq(users.id, userId));
 
-  await audit({ actor, action: 'auth:password_changed', entityType: 'user', entityId: userId });
-  return { ok: true as const };
+  // ابطال همهٔ نشست‌های دیگر — تعویض رمز یعنی نشست‌های قبلی نامعتبرند
+  const revoked = await revokeAllSessions(userId, currentSessionId);
+  await audit({ actor, action: 'auth:password_changed', entityType: 'user', entityId: userId, after: { revokedSessions: revoked } });
+  return { ok: true as const, revoked };
 }
 
 /** تعیین رمز شخصی برای اولین ورود (بدون نیاز به رمز فعلی) */
-export async function setInitialPassword(userId: string, newPassword: string, actor: AuditActor) {
+export async function setInitialPassword(userId: string, newPassword: string, actor: AuditActor, currentSessionId?: string) {
   const rows = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   const user = rows[0];
   if (!user) return { ok: false as const, error: 'کاربر یافت نشد' };
@@ -314,13 +362,15 @@ export async function setInitialPassword(userId: string, newPassword: string, ac
   if (problem) return { ok: false as const, error: problem };
 
   await db.update(users).set({
-    passwordHash: await hash(newPassword, { type: 2, memoryCost: 65536, timeCost: 3 }),
+    passwordHash: await withArgon2Gate(() => hash(newPassword, ARGON2_OPTIONS)),
     mustChangePassword: false,
     updatedAt: new Date(),
   }).where(eq(users.id, userId));
 
-  await audit({ actor, action: 'auth:password_changed', entityType: 'user', entityId: userId, after: { kind: 'initial' } });
-  return { ok: true as const };
+  // ابطال همهٔ نشست‌های دیگر پس از تعیین رمز اولیه
+  const revoked = await revokeAllSessions(userId);
+  await audit({ actor, action: 'auth:password_changed', entityType: 'user', entityId: userId, after: { kind: 'initial', revokedSessions: revoked } });
+  return { ok: true as const, revoked };
 }
 
 /* ───────────── ریست رمز (الف-۴ب) ───────────── */
@@ -355,7 +405,7 @@ export async function resetStaffPassword(userId: string, actor: AuditActor) {
 
   const temporary = generateTemporaryPassword(10);
   await db.update(users).set({
-    passwordHash: await hash(temporary, { type: 2, memoryCost: 65536, timeCost: 3 }),
+    passwordHash: await withArgon2Gate(() => hash(temporary, ARGON2_OPTIONS)),
     mustChangePassword: true,
     updatedAt: new Date(),
   }).where(eq(users.id, userId));

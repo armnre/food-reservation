@@ -8,6 +8,7 @@ import { and, asc, desc, eq, gte, inArray, isNull, lte, ne, sql, count, or } fro
 import { env } from '@/lib/env';
 import { mealInstant } from '@/lib/jalali';
 import { audit, type AuditActor } from '@/lib/audit';
+import { BizError } from './wallet';
 
 /* ───────────── ثابت‌ها ───────────── */
 
@@ -250,33 +251,46 @@ export async function upsertMenuItem(input: {
   if (menu.status === 'CLOSED') return { ok: false as const, error: 'منوی بسته‌شده قابل ویرایش نیست' };
 
   if (input.itemId) {
-    const before = await db.select().from(menuItems).where(eq(menuItems.id, input.itemId)).limit(1);
-    const item = before[0];
-    if (!item) return { ok: false as const, error: 'آیتم یافت نشد' };
+    // ویرایش اتمیک زیر قفل ردیف — حذف و درج قیمت‌ها و چک ظرفیت در یک تراکنش
+    let before: typeof menuItems.$inferSelect | undefined;
+    try {
+      await db.transaction(async (tx) => {
+        const locked = await tx.select().from(menuItems)
+          .where(eq(menuItems.id, input.itemId as string))
+          .for('update');
+        const item = locked[0];
+        if (!item) throw new BizError('آیتم یافت نشد');
 
-    // ج‑۴: بعد از انتشار نمی‌توان ظرفیت را کمتر از reserved_count کرد
-    if (menu.status === 'PUBLISHED' && input.capacity < item.reservedCount) {
-      return { ok: false as const, error: `ظرفیت نمی‌تواند کمتر از تعداد رزروشده (${item.reservedCount}) باشد` };
+        // ج-۴: بعد از انتشار نمی‌توان ظرفیت را کمتر از reserved_count کرد — زیر قفل
+        if (menu.status === 'PUBLISHED' && input.capacity < item.reservedCount) {
+          throw new BizError(`ظرفیت نمی‌تواند کمتر از تعداد رزروشده (${item.reservedCount}) باشد`);
+        }
+
+        await tx.update(menuItems).set({
+          capacity: input.capacity,
+          updatedAt: new Date(),
+        }).where(eq(menuItems.id, input.itemId as string));
+
+        await tx.delete(menuItemPrices).where(eq(menuItemPrices.menuItemId, input.itemId as string));
+        await tx.insert(menuItemPrices).values(input.prices.map((p) => ({
+          menuItemId: input.itemId as string,
+          customerGroup: p.customerGroup,
+          priceRials: p.priceRials,
+        })));
+
+        before = item;
+      });
+    } catch (e) {
+      if (e instanceof BizError) return { ok: false as const, error: e.message };
+      throw e;
     }
-
-    await db.update(menuItems).set({
-      capacity: input.capacity,
-      updatedAt: new Date(),
-    }).where(eq(menuItems.id, input.itemId));
-
-    await db.delete(menuItemPrices).where(eq(menuItemPrices.menuItemId, input.itemId));
-    await db.insert(menuItemPrices).values(input.prices.map((p) => ({
-      menuItemId: input.itemId as string,
-      customerGroup: p.customerGroup,
-      priceRials: p.priceRials,
-    })));
 
     await audit({
       actor,
       action: 'menu_item:updated',
       entityType: 'menu_item',
       entityId: input.itemId,
-      before: item,
+      before,
       after: { capacity: input.capacity, prices: input.prices },
     });
     return { ok: true as const, id: input.itemId };

@@ -2,9 +2,6 @@ import { NextResponse } from 'next/server';
 import { login, issueCaptcha, getLockState, type LoginKind } from '@/server/services/auth';
 import { getClientIp } from '@/lib/client-ip';
 import { env } from '@/lib/env';
-import { db } from '@/db';
-import { systemSettings } from '@/db/schema';
-import { eq } from 'drizzle-orm';
 
 const GENERIC_ERROR = 'نام کاربری یا رمز عبور اشتباه است';
 
@@ -91,11 +88,5 @@ export async function GET(request: Request) {
 export const dynamic = 'force-dynamic';
 
 export async function HEAD() {
-  return new NextResponse(null, { status: 200 });
-}
-
-// نگه‌داشتن ارجاع به db تا در build درخت‌کشی نشود
-export async function OPTIONS() {
-  await db.select().from(systemSettings).where(eq(systemSettings.key, 'brand'));
   return new NextResponse(null, { status: 200 });
 }

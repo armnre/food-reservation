@@ -15,6 +15,7 @@ import {
   validatePersonalPassword,
 } from '@/lib/validation';
 import { hash } from 'argon2';
+import { ARGON2_OPTIONS } from '@/lib/argon2-gate';
 import {
   readStudentWorkbook, validateStudentRows, classifyAgainstDatabase,
   commitStudentImport, undoLastImport, undoImport,
@@ -293,30 +294,8 @@ export async function resetStudentPasswordAction(userId: string) {
 export async function setStudentStatusAction(userIds: string[], status: string) {
   try {
     const ctx = await requireRole(ROLES.VICE_STUDENT, ROLES.SUPER_ADMIN);
-    const parsed = parseStudentStatus(status);
-    if (!parsed) return { ok: false as const, error: 'وضعیت نامعتبر است' };
-
-    for (const userId of userIds) {
-      const before = await db.select().from(studentProfiles).where(eq(studentProfiles.userId, userId)).limit(1);
-      await db.update(studentProfiles).set({ status: parsed, updatedAt: new Date() })
-        .where(eq(studentProfiles.userId, userId));
-      if (parsed !== 'ACTIVE') {
-        await db.update(users).set({ isActive: false, updatedAt: new Date() }).where(eq(users.id, userId));
-        await db.update(sessions).set({ revokedAt: new Date() })
-          .where(and(eq(sessions.userId, userId), isNull(sessions.revokedAt)));
-      } else {
-        await db.update(users).set({ isActive: true, updatedAt: new Date() }).where(eq(users.id, userId));
-      }
-      await audit({
-        actor: { id: ctx.user.id, role: ctx.user.role, ip: null, userAgent: null },
-        action: 'student:status_changed',
-        entityType: 'student_profile',
-        entityId: userId,
-        before: { status: before[0]?.status ?? null },
-        after: { status: parsed },
-      });
-    }
-    return { ok: true as const, updated: userIds.length };
+    const { setStudentStatus } = await import('@/server/services/student-status');
+    return await setStudentStatus({ actor: { id: ctx.user.id, role: ctx.user.role }, userIds, status });
   } catch (e) {
     return { ok: false as const, error: (e as Error).message };
   }
@@ -454,7 +433,7 @@ export async function createStaffAction(values: StaffFormValues) {
     const [user] = await db.insert(users).values({
       role: kind === 'CAFETERIA' ? 'CAFETERIA_OPERATOR' : 'STAFF',
       username,
-      passwordHash: await hash(temporary, { type: 2, memoryCost: 65536, timeCost: 3 }),
+      passwordHash: await hash(temporary, ARGON2_OPTIONS),
       mustChangePassword: true,
       isActive: true,
       displayName: `${firstName} ${lastName}`,
@@ -562,7 +541,7 @@ export async function resetStaffPasswordAction(userId: string) {
     if(!targetUser || !canManageRole(ctx.user.role,targetUser.role)) return {ok:false as const,error:'شما مجوز مدیریت این حساب را ندارید'};
     const temporary = generateTemporaryPassword(10);
     await db.update(users).set({
-      passwordHash: await hash(temporary, { type: 2, memoryCost: 65536, timeCost: 3 }),
+      passwordHash: await hash(temporary, ARGON2_OPTIONS),
       mustChangePassword: true,
       updatedAt: new Date(),
     }).where(eq(users.id, userId));
@@ -649,7 +628,7 @@ export async function exportCredentialsAction(userIds: string[]) {
       if (!user) continue;
       const temporary = generateTemporaryPassword(10);
       await db.update(users).set({
-        passwordHash: await hash(temporary, { type: 2, memoryCost: 65536, timeCost: 3 }),
+        passwordHash: await hash(temporary, ARGON2_OPTIONS),
         mustChangePassword: true,
         updatedAt: new Date(),
       }).where(eq(users.id, userId));
@@ -690,10 +669,9 @@ export async function revokeMySessionAction(sessionId: string) {
 export async function setInitialPasswordAction(newPassword: string) {
   const ctx = await getCurrentUser();
   if (!ctx.user.mustChangePassword) return { ok: false as const, error: 'برای تغییر رمز فعلی از پروفایل استفاده کنید.' };
-  const { setInitialPassword, revokeAllSessions } = await import('@/server/services/auth');
-  const result = await setInitialPassword(ctx.user.id,newPassword,{id:ctx.user.id,role:ctx.user.role});
-  if (result.ok) await revokeAllSessions(ctx.user.id,ctx.user.sessionId);
-  return result;
+  const { setInitialPassword } = await import('@/server/services/auth');
+  // سرویس خودش همهٔ نشست‌های دیگر را باطل می‌کند (نشست جاری زنده می‌ماند)
+  return setInitialPassword(ctx.user.id, newPassword, { id: ctx.user.id, role: ctx.user.role }, ctx.user.sessionId);
 }
 
 export async function changePasswordAction(currentPassword: string, newPassword: string) {
@@ -702,36 +680,13 @@ export async function changePasswordAction(currentPassword: string, newPassword:
       ROLES.STUDENT, ROLES.STAFF, ROLES.VICE_STUDENT,
       ROLES.NUTRITION_MANAGER, ROLES.CAFETERIA_OPERATOR, ROLES.SUPER_ADMIN,
     );
-    const { verify } = await import('argon2');
-    const rows = await db.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
-    const user = rows[0];
-    if (!user || !user.passwordHash) return { ok: false as const, error: 'رمز فعلی تنظیم نشده است' };
-
-    const ok = await verify(user.passwordHash, currentPassword);
-    if (!ok) return { ok: false as const, error: 'رمز فعلی اشتباه است' };
-
-    const studentRows = await db.select().from(studentProfiles).where(eq(studentProfiles.userId, ctx.user.id)).limit(1);
-    let nationalCode: string | null = null;
-    if (studentRows[0]) {
-      try { nationalCode = decryptSecret(studentRows[0].nationalCode); } catch { nationalCode = null; }
-    }
-    const problem = validatePersonalPassword(newPassword, {
-      nationalCode,
-      studentNumber: studentRows[0]?.studentNumber ?? null,
-    });
-    if (problem) return { ok: false as const, error: problem };
-
-    await db.update(users).set({
-      passwordHash: await hash(newPassword, { type: 2, memoryCost: 65536, timeCost: 3 }),
-      mustChangePassword: false,
-      updatedAt: new Date(),
-    }).where(eq(users.id, ctx.user.id));
-
-    await audit({
-      actor: { id: ctx.user.id, role: ctx.user.role, ip: null, userAgent: null },
-      action: 'auth:password_changed', entityType: 'user', entityId: ctx.user.id,
-    });
-    return { ok: true as const };
+    // منطق واحد در سرویس auth — بدون کد تکراری؛ نشست‌های دیگر باطل می‌شوند
+    const { changeOwnPassword } = await import('@/server/services/auth');
+    return await changeOwnPassword(
+      ctx.user.id, currentPassword, newPassword,
+      { id: ctx.user.id, role: ctx.user.role, ip: null, userAgent: null },
+      ctx.user.sessionId,
+    );
   } catch (e) {
     return { ok: false as const, error: (e as Error).message };
   }

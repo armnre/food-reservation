@@ -1,15 +1,52 @@
-import { format,parse } from 'date-fns-jalali';
+import { format, parse } from 'date-fns-jalali';
 import { toLatinDigits } from './validation';
-export const TEHRAN='Asia/Tehran';
-export function toJalali(date:Date){return format(date,'yyyy/MM/dd')}
-export function toJalaliLong(date:Date){return new Intl.DateTimeFormat('fa-IR',{timeZone:TEHRAN,weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(date)}
-export function toJalaliDateTime(date:Date){return new Intl.DateTimeFormat('fa-IR',{timeZone:TEHRAN,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).format(date)}
-export function fromJalali(date:string){return parse(toLatinDigits(date),'yyyy/MM/dd',new Date())}
-export function fromJalaliDateTime(date:string,time:string){const d=fromJalali(date);const [hh,mm]=toLatinDigits(time).split(':').map(Number);d.setHours(hh,mm,0,0);return d}
-export function nowJalali(){return toJalaliLong(new Date())}
-export function isPast(date:Date){return date.getTime()<Date.now()}
-export function jalaliWeekdayIndex(date:Date){return (date.getDay()+1)%7}
-export const PERSIAN_WEEKDAYS=['شنبه','یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه','پنجشنبه','جمعه'] as const;
-export function persianDay(date:string|Date){return {day:new Intl.DateTimeFormat('fa-IR',{timeZone:TEHRAN,day:'numeric'}).format(new Date(date)),month:new Intl.DateTimeFormat('fa-IR',{timeZone:TEHRAN,month:'long'}).format(new Date(date)),weekday:new Intl.DateTimeFormat('fa-IR',{timeZone:TEHRAN,weekday:'long'}).format(new Date(date))}}
+import { TEHRAN, tehranDayKey } from './tehran-time';
 
-export function mealInstant(day:Date,slot:Date){return new Date(day.toISOString().slice(0,10)+'T'+slot.toISOString().slice(11,19)+'+03:30')}
+export { TEHRAN, tehranDayKey, mealInstant } from './tehran-time';
+export { startOfTehranDay, isSameTehranDay, todayTehran, tehranMidnight } from './tehran-time';
+
+/** تاریخ شمسی YYYY/MM/DD به وقت تهران — مستقل از TZ سرور */
+export function toJalali(date: Date): string {
+  const parts = new Intl.DateTimeFormat('en-u-ca-persian', {
+    timeZone: TEHRAN, year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(date);
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? '';
+  return `${get('year')}/${get('month')}/${get('day')}`;
+}
+export function toJalaliLong(date: Date) {
+  return new Intl.DateTimeFormat('fa-IR', { timeZone: TEHRAN, weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(date);
+}
+export function toJalaliDateTime(date: Date) {
+  return new Intl.DateTimeFormat('fa-IR', { timeZone: TEHRAN, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(date);
+}
+
+/** تاریخ شمسی → لحظهٔ نیمه‌شب تهران همان روز (مستقل از TZ سرور) */
+export function fromJalali(date: string): Date {
+  const d = parse(toLatinDigits(date), 'yyyy/MM/dd', new Date());
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return new Date(`${y}-${m}-${day}T00:00:00${'+03:30'}`);
+}
+
+/** تاریخ و ساعت شمسی → لحظهٔ متناظر به وقت تهران (مستقل از TZ سرور) */
+export function fromJalaliDateTime(date: string, time: string): Date {
+  const d = fromJalali(date);
+  const [hh, mm] = toLatinDigits(time).split(':').map(Number);
+  const dayKey = tehranDayKey(d);
+  return new Date(`${dayKey}T${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:00+03:30`);
+}
+
+export function nowJalali() { return toJalaliLong(new Date()); }
+export function isPast(date: Date) { return date.getTime() < Date.now(); }
+export function jalaliWeekdayIndex(date: Date) { return (date.getDay() + 1) % 7; }
+export const PERSIAN_WEEKDAYS = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه'] as const;
+export function persianDay(date: string | Date) {
+  return {
+    day: new Intl.DateTimeFormat('fa-IR', { timeZone: TEHRAN, day: 'numeric' }).format(new Date(date)),
+    month: new Intl.DateTimeFormat('fa-IR', { timeZone: TEHRAN, month: 'long' }).format(new Date(date)),
+    weekday: new Intl.DateTimeFormat('fa-IR', { timeZone: TEHRAN, weekday: 'long' }).format(new Date(date)),
+  };
+}
+
+

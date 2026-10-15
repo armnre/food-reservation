@@ -1,3 +1,4 @@
+import { ARGON2_OPTIONS } from '@/lib/argon2-gate';
 import ExcelJS from 'exceljs';
 import { db } from '@/db';
 import {
@@ -773,7 +774,7 @@ export async function commitStaffImport(input: {
       const [user] = await tx.insert(users).values({
         role: kind === 'CAFETERIA' ? 'CAFETERIA_OPERATOR' : 'STAFF',
         username: row.username,
-        passwordHash: await hash(temporary, { type: 2, memoryCost: 65536, timeCost: 3 }),
+        passwordHash: await hash(temporary, ARGON2_OPTIONS),
         mustChangePassword: true,
         isActive: true,
         displayName: `${row.firstName} ${row.lastName}`,

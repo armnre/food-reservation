@@ -12,6 +12,7 @@ import {
 } from './schema';
 import { eq, sql } from 'drizzle-orm';
 import { hash } from 'argon2';
+import { ARGON2_OPTIONS } from '../lib/argon2-gate';
 import { encryptSecret, blindIndex } from '../lib/crypto';
 import { isValidNationalCode, normalizeNationalCode } from '../lib/validation';
 
@@ -67,7 +68,7 @@ async function main() {
     await db.insert(users).values({
       role: a.role as never,
       username: a.username,
-      passwordHash: await hash(a.password, { type: 2, memoryCost: 65536, timeCost: 3 }),
+      passwordHash: await hash(a.password, ARGON2_OPTIONS),
       mustChangePassword: true,
       isActive: true,
       displayName: a.displayName,

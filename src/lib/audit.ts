@@ -52,7 +52,8 @@ export type AuditAction =
   | 'payment:failed'
   | 'withdrawal:requested'
   | 'withdrawal:approved'
-  | 'withdrawal:rejected';
+  | 'withdrawal:rejected'
+  | 'wallet:manual_charge';
 
 export interface AuditActor {
   id: string | null;

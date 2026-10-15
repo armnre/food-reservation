@@ -1,10 +1,12 @@
 import Redis from 'ioredis';
 import { env } from './env';
+/** KV_DRIVER=memory — کاملاً بدون Redis؛ فقط برای تست و محیط بدون Redis. در production واقعی استفاده نشود. */
+const memoryOnly=process.env.KV_DRIVER==='memory';
 let client:Redis|null=null;
-export async function getRedis():Promise<Redis>{if(!client){client=new Redis(env.redisUrl,{lazyConnect:true,connectTimeout:2500,commandTimeout:3500,maxRetriesPerRequest:1,retryStrategy:times=>Math.min(200*2**Math.min(times,4),3000)});client.on('error',()=>{});}if(client.status==='wait')await client.connect();if(client.status!=='ready')await client.ping();return client;}
+export async function getRedis():Promise<Redis>{if(memoryOnly)throw new Error('KV در حالت فقط-حافظه است');if(!client){client=new Redis(env.redisUrl,{lazyConnect:true,connectTimeout:2500,commandTimeout:3500,maxRetriesPerRequest:1,retryStrategy:times=>Math.min(200*2**Math.min(times,4),3000)});client.on('error',()=>{});}if(client.status==='wait')await client.connect();if(client.status!=='ready')await client.ping();return client;}
 export async function redisHealth(){try{return {ok:(await(await getRedis()).ping())==='PONG',detail:'redis: ok'}}catch{return {ok:false,detail:'redis: unavailable'}}}
 type Entry={value:string;expires:number};const memory=new Map<string,Entry>();
-function fallback(error:unknown){if(env.isProduction)throw error;}
+function fallback(error:unknown){if(env.redisStrict)throw error;}
 export async function kvGet(key:string){try{return await(await getRedis()).get(key)}catch(e){fallback(e);const v=memory.get(key);if(v&&v.expires>Date.now())return v.value;memory.delete(key);return null}}
 export async function kvSet(key:string,value:string,seconds:number){try{await(await getRedis()).set(key,value,'EX',seconds)}catch(e){fallback(e);memory.set(key,{value,expires:Date.now()+seconds*1000})}}
 export async function kvDel(key:string){try{await(await getRedis()).del(key)}catch(e){fallback(e);memory.delete(key)}}

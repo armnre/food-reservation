@@ -303,7 +303,11 @@ function FoodFormDialog({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
-  React.useEffect(() => {
+  // همگام‌سازی فرم در render — بدون useEffect (الگوی رسمی React)
+  const [prevDialogKey, setPrevDialogKey] = useState<string | null>(null);
+  const dialogKey = open ? `food:${editing?.id ?? 'new'}` : null;
+  if (dialogKey !== prevDialogKey) {
+    setPrevDialogKey(dialogKey);
     if (open) {
       setValues({
         name: editing?.name ?? '',
@@ -315,7 +319,7 @@ function FoodFormDialog({
       setImage(null);
       setErrors({});
     }
-  }, [open, editing]);
+  }
 
   async function pickImage(file: File) {
     if (file.size > 2 * 1024 * 1024) {

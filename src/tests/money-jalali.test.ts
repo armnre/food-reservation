@@ -56,18 +56,17 @@ describe('تاریخ شمسی', () => {
     expect(toJalali(d)).toBe('1403/01/01');
   });
 
-  it('تاریخ شمسی را به میلادی تبدیل می‌کند', () => {
+  it('تاریخ شمسی را به میلادی تبدیل می‌کند — نیمه‌شب تهران', () => {
     const d = fromJalali('1403/01/01');
-    expect(d.getFullYear()).toBe(2024);
-    expect(d.getMonth()).toBe(2);
-    expect(d.getDate()).toBe(20);
+    // ۱۴۰۳/۰۱/۰۱ = ۲۰ مارس ۲۰۲۴؛ نیمه‌شب تهران = 2024-03-19T20:30:00Z
+    expect(d.toISOString()).toBe('2024-03-19T20:30:00.000Z');
   });
 
-  it('رفت‌وبرگشت تاریخ پایدار است', () => {
-    const d = new Date(2025, 8, 15);
-    expect(fromJalali(toJalali(d)).getTime()).toBe(
-      new Date(2025, 8, 15).getTime(),
-    );
+  it('رفت‌وبرگشت تاریخ پایدار است — مستقل از TZ سرور', () => {
+    const d = new Date(2025, 8, 15); // ۱۵ سپتامبر ۲۰۲۵ ساعت محلی سرور
+    const round = fromJalali(toJalali(d));
+    // هر دو باید به یک «روز تقویمی تهران» اشاره کنند
+    expect(toJalali(round)).toBe(toJalali(d));
   });
 
   it('ارقام نمایش فارسی است', () => {

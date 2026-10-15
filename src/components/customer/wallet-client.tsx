@@ -60,6 +60,8 @@ export function WalletClient({
   const [topUpOpen, setTopUpOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [amount, setAmount] = useState('');
+  const [withdrawIban, setWithdrawIban] = useState('');
+  const [accountHolder, setAccountHolder] = useState('');
   const [busy, setBusy] = useState(false);
 
   async function doTopUp() {
@@ -77,7 +79,7 @@ export function WalletClient({
 
   async function doWithdraw() {
     setBusy(true);
-    const res = await requestWithdrawalAction(amount);
+    const res = await requestWithdrawalAction(amount, withdrawIban, accountHolder);
     setBusy(false);
     if (!res.ok) {
       toast.push({ kind: 'error', title: 'خطا', description: res.error });
@@ -85,6 +87,8 @@ export function WalletClient({
     }
     setWithdrawOpen(false);
     setAmount('');
+    setWithdrawIban('');
+    setAccountHolder('');
     toast.push({
       kind: 'success',
       title: 'درخواست ثبت شد',
@@ -202,7 +206,7 @@ export function WalletClient({
         </section>
       </div>
 
-      {/* diálogo شارژ */}
+      {/* دیالوگ شارژ */}
       <Dialog
         open={topUpOpen}
         onClose={() => setTopUpOpen(false)}
@@ -239,7 +243,7 @@ export function WalletClient({
         </div>
       </Dialog>
 
-      {/* diálogo برداشت */}
+      {/* دیالوگ برداشت */}
       <Dialog
         open={withdrawOpen}
         onClose={() => setWithdrawOpen(false)}
@@ -265,6 +269,21 @@ export function WalletClient({
             placeholder="مثلاً 50000"
             className="text-right"
             autoFocus
+          />
+        </Field>
+        <Field label="شماره شبا (الزامی)" required>
+          <TextInput
+            dir="ltr"
+            value={withdrawIban}
+            onChange={(e) => setWithdrawIban(e.target.value)}
+            placeholder="IR..."
+          />
+        </Field>
+        <Field label="نام صاحب حساب (الزامی)" required>
+          <TextInput
+            value={accountHolder}
+            onChange={(e) => setAccountHolder(e.target.value)}
+            placeholder="نام و نام خانوادگی"
           />
         </Field>
         <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3.5">

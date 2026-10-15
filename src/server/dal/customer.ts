@@ -10,7 +10,7 @@ import { getWalletLedger, getMyPayments } from '@/server/services/payment';
 import { GROUP_LABELS, type CustomerGroup } from '@/server/services/menu';
 import { toJalaliDateTime, toJalali } from '@/lib/jalali';
 
-/** Tabellenzugriff für STUDENT + STAFF */
+/** دسترسی به جداول برای دانشجو و کارمند */
 export async function requireCustomer() {
   return requireRole(ROLES.STUDENT, ROLES.STAFF);
 }
@@ -98,7 +98,7 @@ export async function getCustomerWalletPage() {
   };
 }
 
-/* ───────────── coopération — اسکن سلف ───────────── */
+/* ───────────── همکاری — اسکن سلف ───────────── */
 
 export async function requireCafeteria() {
   return requireRole(ROLES.CAFETERIA_OPERATOR);

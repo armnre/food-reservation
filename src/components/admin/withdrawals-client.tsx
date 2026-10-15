@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle2, XCircle, Clock, ArrowDownToLine } from 'lucide-react';
-import { DataTable, Badge, Field, Select, type Column } from '@/components/ui/data';
+import { DataTable, Badge, Field, Select, TextInput, type Column } from '@/components/ui/data';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog, useToast } from '@/components/ui/feedback';
 import { approveWithdrawalAction, rejectWithdrawalAction } from '@/server/actions/admin-actions';
@@ -17,6 +17,9 @@ export interface WithdrawalItem {
   createdAt: string;
   userName: string;
   userUsername: string;
+  accountHolder?: string | null;
+  ibanMasked?: string | null;
+  bankReference?: string | null;
 }
 
 const STATUS_META: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' | 'muted' | 'info' }> = {
@@ -38,6 +41,7 @@ export function WithdrawalsClient({
   const [confirmApprove, setConfirmApprove] = useState<WithdrawalItem | null>(null);
   const [confirmReject, setConfirmReject] = useState<WithdrawalItem | null>(null);
   const [busy, setBusy] = useState(false);
+  const [bankRef, setBankRef] = useState('');
 
   function navigate(next: string) {
     const params = new URLSearchParams();
@@ -131,12 +135,22 @@ export function WithdrawalsClient({
         open={Boolean(confirmApprove)}
         onClose={() => setConfirmApprove(null)}
         title="تأیید درخواست برداشت"
-        description={`مبلغ ${confirmApprove ? formatToman(confirmApprove.amountRials) : ''} برای «${confirmApprove?.userName ?? ''}» پرداخت خواهد شد. آیا مطمئن هستید؟`}
+        description={`مبلغ ${confirmApprove ? formatToman(confirmApprove.amountRials) : ''} برای «${confirmApprove?.userName ?? ''}» پرداخت خواهد شد. شبا: ${confirmApprove?.ibanMasked ?? '—'} — ابتدا کارت به کارت/پایا را انجام دهید و شمارهٔ پیگیری را ثبت کنید.`}
+        extra={
+          <Field label="شمارهٔ پیگیری بانکی (الزامی)">
+            <TextInput
+              dir="ltr"
+              value={bankRef}
+              onChange={(e) => setBankRef(e.target.value)}
+              placeholder="مثلاً 123456789"
+            />
+          </Field>
+        }
         confirmLabel="تأیید پرداخت"
         onConfirm={async () => {
           if (!confirmApprove) return;
           setBusy(true);
-          const res = await approveWithdrawalAction(confirmApprove.id);
+          const res = await approveWithdrawalAction(confirmApprove.id, bankRef);
           setBusy(false);
           setConfirmApprove(null);
           if (res.ok) {

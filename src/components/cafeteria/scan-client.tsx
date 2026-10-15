@@ -116,7 +116,7 @@ export function CafeteriaScanClient({
 
   useEffect(() => () => stopCamera(), []);
 
-  // اسکن текстовой — با کتابخانهٔ jsQR-like ساده از طریق BarcodeDetector
+  // اسکن متنی — با کتابخانهٔ jsQR-like ساده از طریق BarcodeDetector
   useEffect(() => {
     if (!scanning || !cameraOn) return;
     let raf = 0;

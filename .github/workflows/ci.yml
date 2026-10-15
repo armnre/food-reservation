@@ -1,0 +1,47 @@
+name: CI
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: hamsofre_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/hamsofre_test
+      REDIS_URL: redis://127.0.0.1:6379
+      TZ: Asia/Tehran
+      DATA_ENCRYPTION_KEY: dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcyEhIQ==
+      DATA_HASH_KEY: dGVzdC1oYXNoLWtleS0zMi1ieXRlcy0zMmJ5dGVzIQ==
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npx next typegen
+      - run: npm exec tsc -- --noEmit --pretty false
+      - run: npx vitest run
+      - name: تست یکپارچه روی دیتابیس واقعی
+        run: npx tsx scripts/migrate.ts && npx vitest run --config vitest.config.integration.ts
+      - run: npm run build
+      - run: npm audit --omit=dev || true

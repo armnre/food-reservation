@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState, useTransition } from 'react';
+import React, { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Eye, EyeOff, KeyRound, UserCheck, UserX, Plus, Download, Filter,
@@ -58,7 +58,12 @@ export function StudentsClient({
   const [revealed, setRevealed] = useState<Record<string, string>>({});
   const [, startTransition] = useTransition();
 
-  useEffect(() => { setRows(initial); }, [initial]);
+  // الگوی رسمی React: همگام‌سازی state با props در render (بدون useEffect)
+  const [prevInitial, setPrevInitial] = useState(initial);
+  if (prevInitial !== initial) {
+    setPrevInitial(initial);
+    setRows(initial);
+  }
 
   function navigate(next: Record<string, string | number>) {
     const params = new URLSearchParams();

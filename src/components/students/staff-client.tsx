@@ -328,7 +328,11 @@ function StaffFormDialog({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
-  React.useEffect(() => {
+  // همگام‌سازی فرم در render — بدون useEffect (الگوی رسمی React)
+  const [prevDialogKey, setPrevDialogKey] = useState<string | null>(null);
+  const dialogKey = open ? `staff:${editing?.username ?? 'new'}` : null;
+  if (dialogKey !== prevDialogKey) {
+    setPrevDialogKey(dialogKey);
     if (open) {
       const parts = (editing?.displayName ?? '').split(' ');
       setValues({
@@ -343,7 +347,7 @@ function StaffFormDialog({
       });
       setErrors({});
     }
-  }, [open, editing]);
+  }
 
   async function submit() {
     const e: Record<string, string> = {};

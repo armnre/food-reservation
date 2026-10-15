@@ -30,6 +30,18 @@ export async function GET() {
     checks.database = { ok: false, detail: `database: ${(e as Error).message}` };
   }
 
+  // هشدار پیکربندی پراکسی — در production اگر hop صفر است، همهٔ IPها یکسان دیده می‌شوند
+  const proxyHops = env.trustedProxyHops;
+  const proxyOk = !env.isProduction || proxyHops > 0;
+  checks.proxy = {
+    ok: proxyOk,
+    detail: proxyOk
+      ? `trusted proxy hops: ${proxyHops}`
+      : 'TRUSTED_PROXY_HOPS=0 در production همهٔ IPها یکسان دیده می‌شوند',
+  };
+  const warnings: string[] = [];
+  if (!proxyOk) warnings.push('TRUSTED_PROXY_HOPS پشت reverse proxy تنظیم نشده است');
+
   // در production پیش‌فرض: Redis اجباری (الف-۶) — نبود یا قطع بودن آن ⇒ 503
   const redisRequired = env.redisStrict;
   const healthy = envOk && checks.database.ok;
@@ -42,6 +54,7 @@ export async function GET() {
       redisStrict: redisRequired,
       environment: process.env.NODE_ENV ?? 'development',
       checks,
+      warnings,
     },
     { status: ok ? 200 : 503 },
   );

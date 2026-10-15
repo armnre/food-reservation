@@ -18,7 +18,8 @@ async function customerActor() {
 export async function reserveFoodAction(menuItemId: string) {
   try {
     const { ctx, actor } = await customerActor();
-    const res = await createReservation({ userId: ctx.user.id, menuItemId, actor });
+    // هر «تلاش» رزرو یک کلید یکتا می‌گیرد؛ رزرو مجدد پس از لغو مجاز است
+    const res = await createReservation({ userId: ctx.user.id, menuItemId, idempotencyKey: randomUUID(), actor });
     if (!res.ok) return { ok: false as const, error: res.error };
     return { ok: true as const, idempotent: res.idempotent };
   } catch (e) {
@@ -58,8 +59,12 @@ export async function topUpAction(amountTomanText: string) {
 
 export async function confirmSandboxPaymentAction(paymentId: string) {
   try {
+    // پرداخت آزمایشی در production ممنوع (فاز ۳-۲)
+    if (process.env.NODE_ENV === 'production') {
+      return { ok: false as const, error: 'پرداخت آزمایشی در محیط عملیاتی مجاز نیست' };
+    }
     const { ctx, actor } = await customerActor();
-    // kondenz seguridad: پرداخت فقط برای صاحب آن
+    // کنترل امنیتی: پرداخت فقط برای صاحب آن
     const { getPayment } = await import('@/server/services/payment');
     const payment = await getPayment(paymentId, ctx.user.id);
     if (!payment) return { ok: false as const, error: 'پرداخت یافت نشد' };
@@ -90,7 +95,7 @@ export async function failSandboxPaymentAction(paymentId: string) {
   }
 }
 
-export async function requestWithdrawalAction(amountTomanText: string) {
+export async function requestWithdrawalAction(amountTomanText: string, iban: string, accountHolder: string) {
   try {
     const { ctx, actor } = await customerActor();
     const parsed = parseTomanInput(amountTomanText);
@@ -98,6 +103,8 @@ export async function requestWithdrawalAction(amountTomanText: string) {
     const res = await requestWithdrawal({
       userId: ctx.user.id,
       amountRials: parsed.rials,
+      iban,
+      accountHolder,
       actor,
     });
     if (!res.ok) return { ok: false as const, error: res.error };
