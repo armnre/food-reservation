@@ -1,0 +1,25 @@
+node_modules/
+.next/
+out/
+build/
+dist/
+.env
+.env.*
+!.env.example
+secrets.env
+secrets.*.env
+.test-credentials.json
+/ test-results/
+/test-results/
+/playwright-report/
+/screenshots/
+.husky/_/
+coverage/
+blob-report/
+.playwright/
+*.tsbuildinfo
+next-env.d.ts
+uploads/
+tmp/
+.DS_Store
+*.log
