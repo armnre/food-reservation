@@ -4,7 +4,12 @@ import { users, loginAttempts } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { hash } from 'argon2';
 import { ARGON2_OPTIONS } from '@/lib/argon2-gate';
-import { login, resetLoginCounters, IDENTIFIER_MAX_LENGTH, type CaptchaChallenge } from '@/server/services/auth';
+import {
+  login,
+  resetLoginCounters,
+  IDENTIFIER_MAX_LENGTH,
+  type CaptchaChallenge,
+} from '@/server/services/auth';
 import { closePool } from './helpers';
 
 /**
@@ -36,14 +41,17 @@ async function failLogin(identifier: string, ip: string, captcha?: CaptchaChalle
 }
 
 async function createLoginUser(username: string) {
-  const [u] = await db.insert(users).values({
-    role: 'STAFF',
-    username,
-    passwordHash: await hash('Correct@12345', ARGON2_OPTIONS),
-    mustChangePassword: false,
-    isActive: true,
-    displayName: 'کاربر تست قفل',
-  }).returning();
+  const [u] = await db
+    .insert(users)
+    .values({
+      role: 'STAFF',
+      username,
+      passwordHash: await hash('Correct@12345', ARGON2_OPTIONS),
+      mustChangePassword: false,
+      isActive: true,
+      displayName: 'کاربر تست قفل',
+    })
+    .returning();
   return u;
 }
 
@@ -63,8 +71,12 @@ describe('قفل ورود دو لایه', () => {
 
     // تلاش ششم از همان IP → قفل
     const locked = await login({
-      kind: 'STAFF', identifier: u.username, password: 'Correct@12345', ip: ipA,
-      captchaToken: captcha?.token, captchaAnswer: captcha ? solveCaptcha(captcha.question) : undefined,
+      kind: 'STAFF',
+      identifier: u.username,
+      password: 'Correct@12345',
+      ip: ipA,
+      captchaToken: captcha?.token,
+      captchaAnswer: captcha ? solveCaptcha(captcha.question) : undefined,
     });
     expect(locked.ok).toBe(false);
     if (!locked.ok) {
@@ -79,8 +91,12 @@ describe('قفل ورود دو لایه', () => {
     if (!firstB.ok && firstB.captcha) captchaB = firstB.captcha;
 
     const fromB = await login({
-      kind: 'STAFF', identifier: u.username, password: 'Correct@12345', ip: ipB,
-      captchaToken: captchaB?.token, captchaAnswer: captchaB ? solveCaptcha(captchaB.question) : undefined,
+      kind: 'STAFF',
+      identifier: u.username,
+      password: 'Correct@12345',
+      ip: ipB,
+      captchaToken: captchaB?.token,
+      captchaAnswer: captchaB ? solveCaptcha(captchaB.question) : undefined,
     });
     expect(fromB.ok).toBe(true);
 
@@ -90,14 +106,12 @@ describe('قفل ورود دو لایه', () => {
 
   it('ورودی بلندتر از سقف ← رد بدون درج در login_attempts', async () => {
     const longId = 'x'.repeat(IDENTIFIER_MAX_LENGTH + 10);
-    const before = await db.select().from(loginAttempts)
-      .where(eq(loginAttempts.identifier, longId));
+    const before = await db.select().from(loginAttempts).where(eq(loginAttempts.identifier, longId));
 
     const r = await login({ kind: 'STAFF', identifier: longId, password: 'whatever', ip: '10.0.0.3' });
     expect(r.ok).toBe(false);
 
-    const after = await db.select().from(loginAttempts)
-      .where(eq(loginAttempts.identifier, longId));
+    const after = await db.select().from(loginAttempts).where(eq(loginAttempts.identifier, longId));
     expect(after.length).toBe(before.length); // هیچ ردیفی درج نشد
   });
 
@@ -116,7 +130,9 @@ describe('قفل ورود دو لایه', () => {
     const ok = await login({ kind: 'STAFF', identifier: u.username, password: 'Correct@12345', ip });
     expect(ok.ok).toBe(true);
     // ردیف login_attempts موفق ثبت شده
-    const attempts = await db.select().from(loginAttempts)
+    const attempts = await db
+      .select()
+      .from(loginAttempts)
       .where(and(eq(loginAttempts.identifier, u.username), eq(loginAttempts.success, true)));
     expect(attempts.length).toBeGreaterThanOrEqual(1);
     await resetLoginCounters(u.username, ip);

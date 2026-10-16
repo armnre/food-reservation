@@ -3,8 +3,19 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  ScanLine, Camera, CameraOff, CheckCircle2, XCircle, AlertTriangle,
-  User, UtensilsCrossed, Clock, Keyboard, RefreshCw, Volume2, VolumeX,
+  ScanLine,
+  Camera,
+  CameraOff,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  User,
+  UtensilsCrossed,
+  Clock,
+  Keyboard,
+  RefreshCw,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/data';
 import { Button } from '@/components/ui/button';
@@ -36,7 +47,10 @@ interface ScanResult {
   canMarkUsed: boolean;
 }
 
-const STATUS_META: Record<string, { label: string; variant: 'success' | 'info' | 'danger' | 'muted' | 'warning' }> = {
+const STATUS_META: Record<
+  string,
+  { label: string; variant: 'success' | 'info' | 'danger' | 'muted' | 'warning' }
+> = {
   CONFIRMED: { label: 'تأییدشده', variant: 'success' },
   USED: { label: 'تحویل‌شده', variant: 'info' },
   CANCELLED: { label: 'لغو شده', variant: 'danger' },
@@ -45,7 +59,8 @@ const STATUS_META: Record<string, { label: string; variant: 'success' | 'info' |
 };
 
 export function CafeteriaScanClient({
-  initialItems, counts,
+  initialItems,
+  counts,
 }: {
   initialItems: TodayItem[];
   counts: { total: number; confirmed: number; used: number; cancelled: number };
@@ -94,7 +109,7 @@ export function CafeteriaScanClient({
       });
       streamRef.current = stream;
       setCameraOn(true);
-      await new Promise(resolve => setTimeout(resolve, 60));
+      await new Promise((resolve) => setTimeout(resolve, 60));
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
@@ -173,7 +188,11 @@ export function CafeteriaScanClient({
     if (res.canMarkUsed) {
       setConfirmUse(true);
     } else if (res.reservation.status === 'USED') {
-      toast.push({ kind: 'warning', title: 'قبلاً استفاده شده', description: `${res.user?.displayName ?? ''} — ${res.food?.name ?? ''}` });
+      toast.push({
+        kind: 'warning',
+        title: 'قبلاً استفاده شده',
+        description: `${res.user?.displayName ?? ''} — ${res.food?.name ?? ''}`,
+      });
     }
   }
 
@@ -245,9 +264,7 @@ export function CafeteriaScanClient({
                 <Button variant="accent" icon={<Camera size={16} />} onClick={startCamera}>
                   شروع اسکن
                 </Button>
-                {cameraError && (
-                  <p className="text-[11px] text-amber-300">{cameraError}</p>
-                )}
+                {cameraError && <p className="text-[11px] text-amber-300">{cameraError}</p>}
               </div>
             )}
           </div>
@@ -280,27 +297,35 @@ export function CafeteriaScanClient({
 
         {/* نتیجهٔ اسکن */}
         {result && (
-          <div className={`rounded-2xl border p-5 shadow-sm ${
-            result.canMarkUsed
-              ? 'border-emerald-200 bg-emerald-50/50'
-              : result.reservation.status === 'USED'
-                ? 'border-sky-200 bg-sky-50/50'
-                : 'border-rose-200 bg-rose-50/50'
-          }`}>
+          <div
+            className={`rounded-2xl border p-5 shadow-sm ${
+              result.canMarkUsed
+                ? 'border-emerald-200 bg-emerald-50/50'
+                : result.reservation.status === 'USED'
+                  ? 'border-sky-200 bg-sky-50/50'
+                  : 'border-rose-200 bg-rose-50/50'
+            }`}
+          >
             <div className="flex items-start gap-3.5">
-              <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl ${
-                result.canMarkUsed ? 'bg-emerald-100 text-emerald-600'
-                  : result.reservation.status === 'USED' ? 'bg-sky-100 text-sky-600'
-                  : 'bg-rose-100 text-rose-500'
-              }`}>
-                {result.canMarkUsed ? <CheckCircle2 size={24} />
-                  : result.reservation.status === 'USED' ? <CheckCircle2 size={24} />
-                  : <XCircle size={24} />}
+              <div
+                className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl ${
+                  result.canMarkUsed
+                    ? 'bg-emerald-100 text-emerald-600'
+                    : result.reservation.status === 'USED'
+                      ? 'bg-sky-100 text-sky-600'
+                      : 'bg-rose-100 text-rose-500'
+                }`}
+              >
+                {result.canMarkUsed ? (
+                  <CheckCircle2 size={24} />
+                ) : result.reservation.status === 'USED' ? (
+                  <CheckCircle2 size={24} />
+                ) : (
+                  <XCircle size={24} />
+                )}
               </div>
               <div className="min-w-0 flex-1">
-                <h3 className="text-base font-bold">
-                  {result.user?.displayName ?? '—'}
-                </h3>
+                <h3 className="text-base font-bold">{result.user?.displayName ?? '—'}</h3>
                 <p className="mt-0.5 font-mono text-[11px] text-[var(--color-foreground-muted)]" dir="ltr">
                   {result.user?.username ?? '—'}
                 </p>
@@ -319,7 +344,9 @@ export function CafeteriaScanClient({
                   </div>
                   <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2">
                     <p className="text-[10px] text-[var(--color-foreground-muted)]">مبلغ</p>
-                    <p className="mt-0.5 text-xs font-semibold tabular-nums">{formatToman(result.reservation.priceRials)}</p>
+                    <p className="mt-0.5 text-xs font-semibold tabular-nums">
+                      {formatToman(result.reservation.priceRials)}
+                    </p>
                   </div>
                 </div>
 
@@ -342,7 +369,10 @@ export function CafeteriaScanClient({
                       className="mr-auto"
                       variant="secondary"
                       icon={<RefreshCw size={14} />}
-                      onClick={() => { setResult(null); setToken(''); }}
+                      onClick={() => {
+                        setResult(null);
+                        setToken('');
+                      }}
                     >
                       اسکن بعدی
                     </Button>
@@ -358,7 +388,11 @@ export function CafeteriaScanClient({
       <aside className="space-y-4">
         <div className="grid grid-cols-2 gap-2.5">
           {[
-            { label: 'کل', value: counts.total, tone: 'bg-[var(--color-muted)] text-[var(--color-foreground)]' },
+            {
+              label: 'کل',
+              value: counts.total,
+              tone: 'bg-[var(--color-muted)] text-[var(--color-foreground)]',
+            },
             { label: 'تأییدشده', value: counts.confirmed, tone: 'bg-emerald-50 text-emerald-700' },
             { label: 'تحویل‌شده', value: counts.used, tone: 'bg-sky-50 text-sky-700' },
             { label: 'لغو شده', value: counts.cancelled, tone: 'bg-rose-50 text-rose-700' },
@@ -381,15 +415,26 @@ export function CafeteriaScanClient({
               {initialItems.map((item) => {
                 const meta = STATUS_META[item.status] ?? STATUS_META.PENDING;
                 return (
-                  <div key={item.id} className="flex items-center gap-2.5 rounded-lg border border-[var(--color-border-subtle)] px-3 py-2">
-                    <div className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${
-                      item.status === 'USED' ? 'bg-sky-100 text-sky-600'
-                        : item.status === 'CONFIRMED' ? 'bg-emerald-100 text-emerald-600'
-                        : 'bg-[var(--color-muted)] text-[var(--color-foreground-muted)]'
-                    }`}>
-                      {item.status === 'USED' ? <CheckCircle2 size={13} />
-                        : item.status === 'CONFIRMED' ? <Clock size={13} />
-                        : <XCircle size={13} />}
+                  <div
+                    key={item.id}
+                    className="flex items-center gap-2.5 rounded-lg border border-[var(--color-border-subtle)] px-3 py-2"
+                  >
+                    <div
+                      className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${
+                        item.status === 'USED'
+                          ? 'bg-sky-100 text-sky-600'
+                          : item.status === 'CONFIRMED'
+                            ? 'bg-emerald-100 text-emerald-600'
+                            : 'bg-[var(--color-muted)] text-[var(--color-foreground-muted)]'
+                      }`}
+                    >
+                      {item.status === 'USED' ? (
+                        <CheckCircle2 size={13} />
+                      ) : item.status === 'CONFIRMED' ? (
+                        <Clock size={13} />
+                      ) : (
+                        <XCircle size={13} />
+                      )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[11px] font-semibold">{item.userName}</p>

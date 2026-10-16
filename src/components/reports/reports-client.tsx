@@ -2,8 +2,13 @@
 
 import React from 'react';
 import {
-  CalendarCheck, CheckCircle2, UtensilsCrossed, DollarSign, XCircle,
-  TrendingUp, Award,
+  CalendarCheck,
+  CheckCircle2,
+  UtensilsCrossed,
+  DollarSign,
+  XCircle,
+  TrendingUp,
+  Award,
 } from 'lucide-react';
 import { StatCard } from '@/components/ui/data';
 import { DistributionBar, DistributionPie } from '@/components/charts/distribution';
@@ -36,22 +41,49 @@ export function ReportsClient({ data }: { data: ReportData }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard title="کل رزروها" value={toPersianDigits(summary.total)} icon={<CalendarCheck size={20} />} tone="brand" />
-        <StatCard title="تحویل‌شده" value={toPersianDigits(summary.used)} icon={<CheckCircle2 size={20} />} tone="success" />
-        <StatCard title="لغو شده" value={toPersianDigits(summary.cancelled)} icon={<XCircle size={20} />} tone="warning" />
-        <StatCard title="درآمد کل" value={formatToman(summary.revenueRials)} hint="از رزروهای تحویل‌شده و فعال" icon={<DollarSign size={20} />} tone="accent" />
-        <StatCard title="نرخ تحویل" value={summary.confirmed > 0 ? `%${toPersianDigits(Math.round((summary.used / summary.confirmed) * 100))}` : '—'} hint="تحویل‌شده / کل" icon={<TrendingUp size={20} />} tone="success" />
+        <StatCard
+          title="کل رزروها"
+          value={toPersianDigits(summary.total)}
+          icon={<CalendarCheck size={20} />}
+          tone="brand"
+        />
+        <StatCard
+          title="تحویل‌شده"
+          value={toPersianDigits(summary.used)}
+          icon={<CheckCircle2 size={20} />}
+          tone="success"
+        />
+        <StatCard
+          title="لغو شده"
+          value={toPersianDigits(summary.cancelled)}
+          icon={<XCircle size={20} />}
+          tone="warning"
+        />
+        <StatCard
+          title="درآمد کل"
+          value={formatToman(summary.revenueRials)}
+          hint="از رزروهای تحویل‌شده و فعال"
+          icon={<DollarSign size={20} />}
+          tone="accent"
+        />
+        <StatCard
+          title="نرخ تحویل"
+          value={
+            summary.confirmed > 0
+              ? `%${toPersianDigits(Math.round((summary.used / summary.confirmed) * 100))}`
+              : '—'
+          }
+          hint="تحویل‌شده / کل"
+          icon={<TrendingUp size={20} />}
+          tone="success"
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-sm">
           <h2 className="text-sm font-bold">تعداد رزرو روزانه</h2>
           <p className="mt-1 text-xs text-[var(--color-foreground-muted)]">۴ هفتهٔ گذشته</p>
-          {dayChart.length === 0 ? (
-            <EmptyMini />
-          ) : (
-            <DistributionBar data={dayChart} color="#3A2D7D" />
-          )}
+          {dayChart.length === 0 ? <EmptyMini /> : <DistributionBar data={dayChart} color="#3A2D7D" />}
         </section>
 
         <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-sm">
@@ -67,11 +99,7 @@ export function ReportsClient({ data }: { data: ReportData }) {
         <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-sm">
           <h2 className="text-sm font-bold">توزیع وضعیت رزروها</h2>
           <p className="mt-1 text-xs text-[var(--color-foreground-muted)]">کل رزروها</p>
-          {statusChart.length === 0 ? (
-            <EmptyMini />
-          ) : (
-            <DistributionPie data={statusChart} />
-          )}
+          {statusChart.length === 0 ? <EmptyMini /> : <DistributionPie data={statusChart} />}
         </section>
 
         <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-sm">
@@ -80,11 +108,7 @@ export function ReportsClient({ data }: { data: ReportData }) {
             پرطرفدارترین غذاها
           </h2>
           <p className="mt-1 text-xs text-[var(--color-foreground-muted)]">۸ غذای برتر بر اساس تعداد رزرو</p>
-          {foodChart.length === 0 ? (
-            <EmptyMini />
-          ) : (
-            <DistributionBar data={foodChart} color="#66469A" />
-          )}
+          {foodChart.length === 0 ? <EmptyMini /> : <DistributionBar data={foodChart} color="#66469A" />}
         </section>
       </div>
 
@@ -115,12 +139,17 @@ export function ReportsClient({ data }: { data: ReportData }) {
                 {topFoods.map((f, i) => (
                   <tr key={f.name} className="border-b border-[var(--color-border-subtle)] last:border-0">
                     <td className="px-5 py-3">
-                      <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold ${
-                        i === 0 ? 'bg-amber-100 text-amber-700'
-                          : i === 1 ? 'bg-slate-100 text-slate-600'
-                          : i === 2 ? 'bg-orange-100 text-orange-700'
-                          : 'bg-[var(--color-muted)] text-[var(--color-foreground-muted)]'
-                      }`}>
+                      <span
+                        className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold ${
+                          i === 0
+                            ? 'bg-amber-100 text-amber-700'
+                            : i === 1
+                              ? 'bg-slate-100 text-slate-600'
+                              : i === 2
+                                ? 'bg-orange-100 text-orange-700'
+                                : 'bg-[var(--color-muted)] text-[var(--color-foreground-muted)]'
+                        }`}
+                      >
                         {toPersianDigits(i + 1)}
                       </span>
                     </td>

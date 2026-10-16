@@ -5,24 +5,53 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
-  ChevronRight, ChevronLeft, Plus, Trash2, CheckCircle2, Circle, Lock,
-  Send, Undo2, XCircle, Copy, Clock, AlertTriangle, Users, Flame,
+  ChevronRight,
+  ChevronLeft,
+  Plus,
+  Trash2,
+  CheckCircle2,
+  Circle,
+  Lock,
+  Send,
+  Undo2,
+  XCircle,
+  Copy,
+  Clock,
+  AlertTriangle,
+  Users,
+  Flame,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge, Field, TextInput, Select, Switch } from '@/components/ui/data';
 import { Drawer, Dialog, ConfirmDialog, useToast, EmptyState, Progress } from '@/components/ui/feedback';
 import {
-  openMenuCellAction, getMenuItemDetailAction, upsertMenuItemAction,
-  removeMenuItemAction, setReservationWindowAction, publishMenuAction,
-  closeMenuAction, revertMenuAction, copyMenuAction, copyPreviousWeekAction,
+  openMenuCellAction,
+  getMenuItemDetailAction,
+  upsertMenuItemAction,
+  removeMenuItemAction,
+  setReservationWindowAction,
+  publishMenuAction,
+  closeMenuAction,
+  revertMenuAction,
+  copyMenuAction,
+  copyPreviousWeekAction,
 } from '@/server/actions/menu-actions';
 import { uploadUrl } from '@/lib/upload-url';
 import { formatToman, tomanToRial, rialToToman } from '@/lib/money';
 import { toPersianDigits, toLatinDigits } from '@/lib/validation';
 import { PERSIAN_WEEKDAYS } from '@/lib/jalali';
 
-export interface SlotDto { id: string; name: string; startTime: string; endTime: string }
-export interface FoodOption { id: string; name: string; category: string }
+export interface SlotDto {
+  id: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+}
+export interface FoodOption {
+  id: string;
+  name: string;
+  category: string;
+}
 
 export interface CellItem {
   id: string;
@@ -50,7 +79,10 @@ export interface CellDto {
   checklist: { key: string; label: string; ok: boolean }[];
 }
 
-const STATUS_META: Record<string, { label: string; variant: 'muted' | 'success' | 'warning' | 'danger'; icon: React.ReactNode }> = {
+const STATUS_META: Record<
+  string,
+  { label: string; variant: 'muted' | 'success' | 'warning' | 'danger'; icon: React.ReactNode }
+> = {
   DRAFT: { label: 'پیش‌نویس', variant: 'warning', icon: <Clock size={11} /> },
   PUBLISHED: { label: 'منتشرشده', variant: 'success', icon: <CheckCircle2 size={11} /> },
   CLOSED: { label: 'بسته‌شده', variant: 'muted', icon: <Lock size={11} /> },
@@ -79,7 +111,12 @@ function priceFor(items: CellItem[], item: CellItem, group: string): number | nu
 }
 
 export function MenuPlannerClient({
-  days, slots, cells, foods, canManage, weekOffset,
+  days,
+  slots,
+  cells,
+  foods,
+  canManage,
+  weekOffset,
 }: {
   days: string[];
   slots: SlotDto[];
@@ -96,9 +133,12 @@ export function MenuPlannerClient({
   const [confirmCopyWeek, setConfirmCopyWeek] = useState(false);
 
   function cellOf(dateIso: string, slotId: string) {
-    return cells.find(
-      (c) => new Date(c.date).toDateString() === new Date(dateIso).toDateString() && c.mealSlotId === slotId,
-    ) ?? null;
+    return (
+      cells.find(
+        (c) =>
+          new Date(c.date).toDateString() === new Date(dateIso).toDateString() && c.mealSlotId === slotId,
+      ) ?? null
+    );
   }
 
   async function openCell(dateIso: string, slotId: string) {
@@ -143,10 +183,17 @@ export function MenuPlannerClient({
           </button>
           <div className="px-3 text-center">
             <p className="text-sm font-bold">
-              {weekOffset === 0 ? 'هفته جاری' : weekOffset === 1 ? 'هفته آینده' : weekOffset === -1 ? 'هفته گذشته' : `هفته ${toPersianDigits(weekOffset)}`}
+              {weekOffset === 0
+                ? 'هفته جاری'
+                : weekOffset === 1
+                  ? 'هفته آینده'
+                  : weekOffset === -1
+                    ? 'هفته گذشته'
+                    : `هفته ${toPersianDigits(weekOffset)}`}
             </p>
             <p className="text-[10px] text-[var(--color-foreground-muted)]">
-              {fmtDay(days[0], 0).day}/{fmtDay(days[0], 0).month} تا {fmtDay(days[6], 6).day}/{fmtDay(days[6], 6).month}
+              {fmtDay(days[0], 0).day}/{fmtDay(days[0], 0).month} تا {fmtDay(days[6], 6).day}/
+              {fmtDay(days[6], 6).month}
             </p>
           </div>
           <button
@@ -172,14 +219,23 @@ export function MenuPlannerClient({
         <table className="w-full min-w-[900px] text-right">
           <thead>
             <tr className="border-b border-[var(--color-border)] bg-[var(--color-muted)]/50">
-              <th className="w-32 px-4 py-3 text-xs font-semibold text-[var(--color-foreground-muted)]">وعده</th>
+              <th className="w-32 px-4 py-3 text-xs font-semibold text-[var(--color-foreground-muted)]">
+                وعده
+              </th>
               {days.map((d, i) => {
                 const f = fmtDay(d, i);
                 const isToday = new Date(d).toDateString() === new Date().toDateString();
                 return (
-                  <th key={d} className={`px-3 py-3 text-center ${isToday ? 'bg-[var(--color-brand-50)]/70' : ''}`}>
-                    <p className="text-[11px] font-semibold text-[var(--color-foreground-muted)]">{f.weekday}</p>
-                    <p className={`text-sm font-bold ${isToday ? 'text-[var(--color-brand-800)]' : ''}`}>{f.day}/{f.month}</p>
+                  <th
+                    key={d}
+                    className={`px-3 py-3 text-center ${isToday ? 'bg-[var(--color-brand-50)]/70' : ''}`}
+                  >
+                    <p className="text-[11px] font-semibold text-[var(--color-foreground-muted)]">
+                      {f.weekday}
+                    </p>
+                    <p className={`text-sm font-bold ${isToday ? 'text-[var(--color-brand-800)]' : ''}`}>
+                      {f.day}/{f.month}
+                    </p>
                   </th>
                 );
               })}
@@ -191,7 +247,8 @@ export function MenuPlannerClient({
                 <th className="px-4 py-3 text-right align-top">
                   <p className="text-xs font-bold">{slot.name}</p>
                   <p className="mt-0.5 font-mono text-[10px] text-[var(--color-foreground-muted)]" dir="ltr">
-                    {new Date(slot.startTime).getHours()}:{String(new Date(slot.startTime).getMinutes()).padStart(2, '0')}
+                    {new Date(slot.startTime).getHours()}:
+                    {String(new Date(slot.startTime).getMinutes()).padStart(2, '0')}
                   </p>
                 </th>
                 {days.map((d) => {
@@ -218,7 +275,11 @@ export function MenuPlannerClient({
                         ) : cell && cell.items.length > 0 ? (
                           <>
                             <div className="mb-1.5 flex items-center justify-between gap-1">
-                              {meta && <Badge variant={meta.variant}>{meta.icon} {meta.label}</Badge>}
+                              {meta && (
+                                <Badge variant={meta.variant}>
+                                  {meta.icon} {meta.label}
+                                </Badge>
+                              )}
                               <span className="text-[10px] text-[var(--color-foreground-muted)]">
                                 {toPersianDigits(cell.items.length)} غذا
                               </span>
@@ -240,10 +301,15 @@ export function MenuPlannerClient({
                             </ul>
                           </>
                         ) : isPast ? (
-                          <p className="pt-6 text-center text-[10px] text-[var(--color-foreground-muted)]">گذشته</p>
+                          <p className="pt-6 text-center text-[10px] text-[var(--color-foreground-muted)]">
+                            گذشته
+                          </p>
                         ) : (
                           <div className="flex h-full flex-col items-center justify-center gap-1.5 text-[var(--color-foreground-muted)]">
-                            <Plus size={18} className="opacity-40 transition-opacity group-hover:opacity-90" />
+                            <Plus
+                              size={18}
+                              className="opacity-40 transition-opacity group-hover:opacity-90"
+                            />
                             <span className="text-[10px] opacity-60">افزودن منو</span>
                           </div>
                         )}
@@ -260,7 +326,9 @@ export function MenuPlannerClient({
       {/* راهنما */}
       <div className="mt-4 flex flex-wrap items-center gap-2.5">
         {Object.entries(STATUS_META).map(([k, v]) => (
-          <Badge key={k} variant={v.variant}>{v.icon} {v.label}</Badge>
+          <Badge key={k} variant={v.variant}>
+            {v.icon} {v.label}
+          </Badge>
         ))}
         <span className="mr-auto text-[11px] text-[var(--color-foreground-muted)]">
           روزهای گذشته فقط‌خواندنی هستند
@@ -273,7 +341,10 @@ export function MenuPlannerClient({
           foods={foods}
           canManage={canManage && active.status !== 'CLOSED'}
           onClose={() => setActive(null)}
-          onChanged={() => { setActive(null); router.refresh(); }}
+          onChanged={() => {
+            setActive(null);
+            router.refresh();
+          }}
           reduce={reduce}
         />
       )}
@@ -316,7 +387,12 @@ interface DetailItem {
 }
 
 function MenuCellDrawer({
-  cell, foods, canManage, onClose, onChanged, reduce,
+  cell,
+  foods,
+  canManage,
+  onClose,
+  onChanged,
+  reduce,
 }: {
   cell: CellDto;
   foods: FoodOption[];
@@ -328,17 +404,29 @@ function MenuCellDrawer({
   const toast = useToast();
   const [items, setItems] = useState<DetailItem[]>(
     cell.items.map((i) => ({
-      id: i.id, foodId: i.foodId, foodName: i.foodName, category: i.category,
-      capacity: i.capacity, reservedCount: i.reservedCount, prices: i.prices,
+      id: i.id,
+      foodId: i.foodId,
+      foodName: i.foodName,
+      category: i.category,
+      capacity: i.capacity,
+      reservedCount: i.reservedCount,
+      prices: i.prices,
     })),
   );
   const [foodId, setFoodId] = useState('');
   const [capacity, setCapacity] = useState('10');
   const [prices, setPrices] = useState<Record<string, string>>({
-    STUDENT: '', EMPLOYEE: '', FACULTY: '', CONTRACTOR: '',
+    STUDENT: '',
+    EMPLOYEE: '',
+    FACULTY: '',
+    CONTRACTOR: '',
   });
-  const [opensAt, setOpensAt] = useState(cell.reservationOpensAt ? toLocalInput(cell.reservationOpensAt) : '');
-  const [closesAt, setClosesAt] = useState(cell.reservationClosesAt ? toLocalInput(cell.reservationClosesAt) : '');
+  const [opensAt, setOpensAt] = useState(
+    cell.reservationOpensAt ? toLocalInput(cell.reservationOpensAt) : '',
+  );
+  const [closesAt, setClosesAt] = useState(
+    cell.reservationClosesAt ? toLocalInput(cell.reservationClosesAt) : '',
+  );
   const [busy, setBusy] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState<DetailItem | null>(null);
   const [confirmRevert, setConfirmRevert] = useState(false);
@@ -366,9 +454,15 @@ function MenuCellDrawer({
 
   async function addItem() {
     if (!cell.menuId) return;
-    if (!foodId) { toast.push({ kind: 'warning', title: 'یک غذا انتخاب کنید' }); return; }
+    if (!foodId) {
+      toast.push({ kind: 'warning', title: 'یک غذا انتخاب کنید' });
+      return;
+    }
     const cap = Number.parseInt(toLatinDigits(capacity), 10);
-    if (!Number.isFinite(cap) || cap <= 0) { toast.push({ kind: 'warning', title: 'ظرفیت باید بزرگ‌تر از صفر باشد' }); return; }
+    if (!Number.isFinite(cap) || cap <= 0) {
+      toast.push({ kind: 'warning', title: 'ظرفیت باید بزرگ‌تر از صفر باشد' });
+      return;
+    }
 
     const priceList = GROUPS.map((g) => ({
       customerGroup: g.key as 'STUDENT' | 'EMPLOYEE' | 'FACULTY' | 'CONTRACTOR',
@@ -376,7 +470,11 @@ function MenuCellDrawer({
     })).filter((p) => p.priceRials > 0);
 
     if (priceList.length === 0) {
-      toast.push({ kind: 'warning', title: 'حداقل برای یک گروه قیمت تعیین کنید', description: 'گروه‌های بدون قیمت، این غذا را نمی‌بینند' });
+      toast.push({
+        kind: 'warning',
+        title: 'حداقل برای یک گروه قیمت تعیین کنید',
+        description: 'گروه‌های بدون قیمت، این غذا را نمی‌بینند',
+      });
       return;
     }
 
@@ -399,7 +497,9 @@ function MenuCellDrawer({
       footer={
         canManage ? (
           <>
-            <Button variant="ghost" onClick={onClose}>بستن</Button>
+            <Button variant="ghost" onClick={onClose}>
+              بستن
+            </Button>
             {cell.status === 'DRAFT' && (
               <Button variant="accent" icon={<Send size={15} />} onClick={() => setConfirmPublish(true)}>
                 انتشار منو
@@ -410,24 +510,36 @@ function MenuCellDrawer({
                 <Button variant="secondary" icon={<Undo2 size={15} />} onClick={() => setConfirmRevert(true)}>
                   بازگشت به پیش‌نویس
                 </Button>
-                <Button variant="danger" icon={<Lock size={15} />} onClick={async () => {
-                  const res = await closeMenuAction(cell.menuId as string);
-                  if (res.ok) { toast.push({ kind: 'success', title: 'منو بسته شد' }); onChanged(); }
-                  else toast.push({ kind: 'error', title: 'خطا', description: res.error });
-                }}>
+                <Button
+                  variant="danger"
+                  icon={<Lock size={15} />}
+                  onClick={async () => {
+                    const res = await closeMenuAction(cell.menuId as string);
+                    if (res.ok) {
+                      toast.push({ kind: 'success', title: 'منو بسته شد' });
+                      onChanged();
+                    } else toast.push({ kind: 'error', title: 'خطا', description: res.error });
+                  }}
+                >
                   بستن زودهنگام
                 </Button>
               </>
             )}
           </>
         ) : (
-          <Button variant="ghost" onClick={onClose}>بستن</Button>
+          <Button variant="ghost" onClick={onClose}>
+            بستن
+          </Button>
         )
       }
     >
       <div className="space-y-5">
         <div className="flex flex-wrap items-center gap-2">
-          {cell.status && <Badge variant={STATUS_META[cell.status]?.variant ?? 'muted'}>{STATUS_META[cell.status]?.label}</Badge>}
+          {cell.status && (
+            <Badge variant={STATUS_META[cell.status]?.variant ?? 'muted'}>
+              {STATUS_META[cell.status]?.label}
+            </Badge>
+          )}
           <span className="text-[11px] text-[var(--color-foreground-muted)]">
             {toPersianDigits(items.length)} آیتم ثبت‌شده
           </span>
@@ -440,14 +552,30 @@ function MenuCellDrawer({
           </h3>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="شروع رزرو">
-              <TextInput type="datetime-local" dir="ltr" value={opensAt} onChange={(e) => setOpensAt(e.target.value)} className="text-right" disabled={!canManage} />
+              <TextInput
+                type="datetime-local"
+                dir="ltr"
+                value={opensAt}
+                onChange={(e) => setOpensAt(e.target.value)}
+                className="text-right"
+                disabled={!canManage}
+              />
             </Field>
             <Field label="پایان رزرو" hint="باید قبل از شروع وعده باشد">
-              <TextInput type="datetime-local" dir="ltr" value={closesAt} onChange={(e) => setClosesAt(e.target.value)} className="text-right" disabled={!canManage} />
+              <TextInput
+                type="datetime-local"
+                dir="ltr"
+                value={closesAt}
+                onChange={(e) => setClosesAt(e.target.value)}
+                className="text-right"
+                disabled={!canManage}
+              />
             </Field>
           </div>
           {canManage && (
-            <Button size="sm" variant="secondary" className="mt-2.5" onClick={saveWindow}>ذخیره بازه</Button>
+            <Button size="sm" variant="secondary" className="mt-2.5" onClick={saveWindow}>
+              ذخیره بازه
+            </Button>
           )}
         </section>
 
@@ -455,7 +583,11 @@ function MenuCellDrawer({
         <section>
           <h3 className="mb-2.5 text-xs font-bold text-[var(--color-foreground-muted)]">غذاهای این وعده</h3>
           {items.length === 0 ? (
-            <EmptyState title="این وعده خالی است" description="از فرم پایین، غذا به این وعده اضافه کنید." image={false} />
+            <EmptyState
+              title="این وعده خالی است"
+              description="از فرم پایین، غذا به این وعده اضافه کنید."
+              image={false}
+            />
           ) : (
             <div className="space-y-2.5">
               {items.map((it) => (
@@ -469,7 +601,9 @@ function MenuCellDrawer({
                     <div className="min-w-0">
                       <p className="truncate text-xs font-bold">{it.foodName}</p>
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                        <Badge variant="muted"><Users size={10} /> ظرفیت {toPersianDigits(it.capacity)}</Badge>
+                        <Badge variant="muted">
+                          <Users size={10} /> ظرفیت {toPersianDigits(it.capacity)}
+                        </Badge>
                         <Badge variant={it.reservedCount > 0 ? 'info' : 'muted'}>
                           رزرو {toPersianDigits(it.reservedCount)}
                         </Badge>
@@ -490,9 +624,14 @@ function MenuCellDrawer({
                     {GROUPS.map((g) => {
                       const p = it.prices.find((x) => x.customerGroup === g.key);
                       return (
-                        <div key={g.key} className={`rounded-lg border px-2.5 py-1.5 ${p ? 'border-[var(--color-border)]' : 'border-dashed border-[var(--color-border-subtle)] opacity-55'}`}>
+                        <div
+                          key={g.key}
+                          className={`rounded-lg border px-2.5 py-1.5 ${p ? 'border-[var(--color-border)]' : 'border-dashed border-[var(--color-border-subtle)] opacity-55'}`}
+                        >
                           <p className="text-[9px] text-[var(--color-foreground-muted)]">{g.label}</p>
-                          <p className="text-[11px] font-semibold">{p ? formatToman(p.priceRials) : 'قیمت ندارد'}</p>
+                          <p className="text-[11px] font-semibold">
+                            {p ? formatToman(p.priceRials) : 'قیمت ندارد'}
+                          </p>
                         </div>
                       );
                     })}
@@ -514,11 +653,20 @@ function MenuCellDrawer({
               <Field label="غذا" required>
                 <Select value={foodId} onChange={(e) => setFoodId(e.target.value)}>
                   <option value="">انتخاب کنید…</option>
-                  {foods.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                  {foods.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name}
+                    </option>
+                  ))}
                 </Select>
               </Field>
               <Field label="ظرفیت" required hint="عدد صحیح بزرگ‌تر از صفر">
-                <TextInput dir="ltr" value={capacity} className="text-right" onChange={(e) => setCapacity(e.target.value)} />
+                <TextInput
+                  dir="ltr"
+                  value={capacity}
+                  className="text-right"
+                  onChange={(e) => setCapacity(e.target.value)}
+                />
               </Field>
             </div>
 
@@ -552,10 +700,15 @@ function MenuCellDrawer({
             <h3 className="mb-2.5 text-xs font-bold text-[var(--color-foreground-muted)]">چک‌لیست انتشار</h3>
             <div className="space-y-1.5">
               {checklist.map((c) => (
-                <div key={c.key} className={`flex items-start gap-2 rounded-lg border px-3 py-2 ${c.ok ? 'border-emerald-200 bg-emerald-50/50' : 'border-amber-200 bg-amber-50/60'}`}>
-                  {c.ok
-                    ? <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-emerald-600" />
-                    : <AlertTriangle size={14} className="mt-0.5 shrink-0 text-amber-600" />}
+                <div
+                  key={c.key}
+                  className={`flex items-start gap-2 rounded-lg border px-3 py-2 ${c.ok ? 'border-emerald-200 bg-emerald-50/50' : 'border-amber-200 bg-amber-50/60'}`}
+                >
+                  {c.ok ? (
+                    <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-emerald-600" />
+                  ) : (
+                    <AlertTriangle size={14} className="mt-0.5 shrink-0 text-amber-600" />
+                  )}
                   <p className="text-[11px] leading-relaxed">{c.label}</p>
                 </div>
               ))}
@@ -575,8 +728,10 @@ function MenuCellDrawer({
           if (!confirmRemove) return;
           const res = await removeMenuItemAction(confirmRemove.id);
           setConfirmRemove(null);
-          if (res.ok) { toast.push({ kind: 'success', title: 'آیتم حذف شد' }); onChanged(); }
-          else toast.push({ kind: 'error', title: 'خطا', description: res.error });
+          if (res.ok) {
+            toast.push({ kind: 'success', title: 'آیتم حذف شد' });
+            onChanged();
+          } else toast.push({ kind: 'error', title: 'خطا', description: res.error });
         }}
       />
 
@@ -587,11 +742,16 @@ function MenuCellDrawer({
         description="پس از انتشار، این منو برای دانشجویان و کارکنان نمایش داده می‌شود. ظرفیت دیگر نمی‌تواند کمتر از تعداد رزروشده باشد."
         confirmLabel="انتشار"
         onConfirm={async () => {
-          if (!(await saveWindow())) { setConfirmPublish(false); return; }
+          if (!(await saveWindow())) {
+            setConfirmPublish(false);
+            return;
+          }
           const res = await publishMenuAction(cell.menuId as string);
           setConfirmPublish(false);
-          if (res.ok) { toast.push({ kind: 'success', title: 'منو منتشر شد' }); onChanged(); }
-          else toast.push({ kind: 'error', title: 'انتشار ناموفق بود', description: res.error });
+          if (res.ok) {
+            toast.push({ kind: 'success', title: 'منو منتشر شد' });
+            onChanged();
+          } else toast.push({ kind: 'error', title: 'انتشار ناموفق بود', description: res.error });
         }}
       />
 
@@ -604,8 +764,10 @@ function MenuCellDrawer({
         onConfirm={async () => {
           const res = await revertMenuAction(cell.menuId as string);
           setConfirmRevert(false);
-          if (res.ok) { toast.push({ kind: 'success', title: 'منو به پیش‌نویس بازگشت' }); onChanged(); }
-          else toast.push({ kind: 'error', title: 'خطا', description: res.error });
+          if (res.ok) {
+            toast.push({ kind: 'success', title: 'منو به پیش‌نویس بازگشت' });
+            onChanged();
+          } else toast.push({ kind: 'error', title: 'خطا', description: res.error });
         }}
       />
     </Drawer>
@@ -630,8 +792,16 @@ function buildClientChecklist(
   const closes = closesAt ? new Date(closesAt).getTime() : NaN;
   return [
     { key: 'food', label: 'حداقل یک غذا در وعده ثبت شده باشد', ok: count > 0 },
-    { key: 'capacity', label: 'ظرفیت همه غذاها بزرگ‌تر از صفر باشد', ok: items.length > 0 && items.every((i) => i.capacity > 0) },
-    { key: 'price', label: 'برای هر غذا حداقل یک قیمت ثبت شده باشد', ok: items.length > 0 && items.every((i) => i.prices.length > 0) },
+    {
+      key: 'capacity',
+      label: 'ظرفیت همه غذاها بزرگ‌تر از صفر باشد',
+      ok: items.length > 0 && items.every((i) => i.capacity > 0),
+    },
+    {
+      key: 'price',
+      label: 'برای هر غذا حداقل یک قیمت ثبت شده باشد',
+      ok: items.length > 0 && items.every((i) => i.prices.length > 0),
+    },
     {
       key: 'window',
       label: 'بازه رزرو معتبر باشد (باز شدن < بسته شدن < شروع وعده)',

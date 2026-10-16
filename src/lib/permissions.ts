@@ -7,30 +7,61 @@ export const ROLES = {
   SUPER_ADMIN: 'SUPER_ADMIN',
 } as const;
 
-export type Role = typeof ROLES[keyof typeof ROLES];
+export type Role = (typeof ROLES)[keyof typeof ROLES];
 
 export const PERMISSIONS = {
   [ROLES.STUDENT]: [
-    'view_own_profile', 'view_menu', 'reserve_food', 'cancel_own_reservation',
-    'view_own_wallet', 'topup_wallet', 'request_withdrawal', 'view_own_reservations',
+    'view_own_profile',
+    'view_menu',
+    'reserve_food',
+    'cancel_own_reservation',
+    'view_own_wallet',
+    'topup_wallet',
+    'request_withdrawal',
+    'view_own_reservations',
   ],
   [ROLES.STAFF]: [
-    'view_own_profile', 'view_menu', 'reserve_food', 'cancel_own_reservation',
-    'view_own_wallet', 'topup_wallet', 'request_withdrawal', 'view_own_reservations',
+    'view_own_profile',
+    'view_menu',
+    'reserve_food',
+    'cancel_own_reservation',
+    'view_own_wallet',
+    'topup_wallet',
+    'request_withdrawal',
+    'view_own_reservations',
   ],
   [ROLES.CAFETERIA_OPERATOR]: [
-    'scan_ticket', 'mark_ticket_used', 'view_menu', 'view_staff_list', 'view_today_reservations',
+    'scan_ticket',
+    'mark_ticket_used',
+    'view_menu',
+    'view_staff_list',
+    'view_today_reservations',
   ],
   [ROLES.NUTRITION_MANAGER]: [
-    'manage_staff_cafeteria', 'manage_menu', 'manage_foods', 'manage_prices',
-    'view_reports', 'view_wallets', 'view_reservations',
+    'manage_staff_cafeteria',
+    'manage_menu',
+    'manage_foods',
+    'manage_prices',
+    'view_reports',
+    'view_wallets',
+    'view_reservations',
   ],
   [ROLES.VICE_STUDENT]: [
-    'manage_staff', 'manage_students', 'view_reports', 'reset_student_password', 'view_menu_readonly',
+    'manage_staff',
+    'manage_students',
+    'view_reports',
+    'reset_student_password',
+    'view_menu_readonly',
   ],
   [ROLES.SUPER_ADMIN]: [
-    'manage_all_users', 'manage_all_roles', 'view_audit_logs', 'manage_system',
-    'manage_withdrawals', 'view_all_wallets', 'view_reports', 'view_reservations',
+    'manage_all_users',
+    'manage_all_roles',
+    'view_audit_logs',
+    'manage_system',
+    'manage_withdrawals',
+    'view_all_wallets',
+    'view_reports',
+    'view_reservations',
   ],
 } as const;
 

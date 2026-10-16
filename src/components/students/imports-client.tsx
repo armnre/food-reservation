@@ -2,7 +2,16 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Undo2, FileSpreadsheet, Eye, RefreshCw, CheckCircle2, XCircle, AlertTriangle, Clock } from 'lucide-react';
+import {
+  Undo2,
+  FileSpreadsheet,
+  Eye,
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Clock,
+} from 'lucide-react';
 import { DataTable, Badge, type Column } from '@/components/ui/data';
 import { Button } from '@/components/ui/button';
 import { Dialog, ConfirmDialog, useToast, EmptyState, TableSkeleton } from '@/components/ui/feedback';
@@ -23,7 +32,10 @@ export interface ImportBatchDto {
   undoneAt: string | null;
 }
 
-const STATUS_META: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'muted'; icon: React.ReactNode }> = {
+const STATUS_META: Record<
+  string,
+  { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'muted'; icon: React.ReactNode }
+> = {
   COMPLETED: { label: 'تکمیل‌شده', variant: 'success', icon: <CheckCircle2 size={12} /> },
   PROCESSING: { label: 'در حال پردازش', variant: 'info', icon: <RefreshCw size={12} /> },
   PENDING: { label: 'در انتظار', variant: 'muted', icon: <Clock size={12} /> },
@@ -51,12 +63,18 @@ export function ImportsClient({ items }: { items: ImportBatchDto[] }) {
           </div>
           <div className="min-w-0">
             <p className="truncate text-xs font-semibold">{r.fileName}</p>
-            <p className="text-[10px] text-[var(--color-foreground-muted)]">{r.kind === 'STAFF' ? 'کارکنان' : 'دانشجویان'}</p>
+            <p className="text-[10px] text-[var(--color-foreground-muted)]">
+              {r.kind === 'STAFF' ? 'کارکنان' : 'دانشجویان'}
+            </p>
           </div>
         </div>
       ),
     },
-    { key: 'createdAt', header: 'تاریخ ثبت', render: (r) => <span className="text-[11px]">{r.createdAt}</span> },
+    {
+      key: 'createdAt',
+      header: 'تاریخ ثبت',
+      render: (r) => <span className="text-[11px]">{r.createdAt}</span>,
+    },
     {
       key: 'counts',
       header: 'نتیجه',
@@ -65,7 +83,9 @@ export function ImportsClient({ items }: { items: ImportBatchDto[] }) {
           <Badge variant="success">جدید {toPersianDigits(r.createdCount)}</Badge>
           <Badge variant="info">به‌روز {toPersianDigits(r.updatedCount)}</Badge>
           {r.rejectedCount > 0 && <Badge variant="danger">ردشده {toPersianDigits(r.rejectedCount)}</Badge>}
-          {r.deactivatedCount > 0 && <Badge variant="warning">غیرفعال {toPersianDigits(r.deactivatedCount)}</Badge>}
+          {r.deactivatedCount > 0 && (
+            <Badge variant="warning">غیرفعال {toPersianDigits(r.deactivatedCount)}</Badge>
+          )}
         </div>
       ),
     },
@@ -74,7 +94,11 @@ export function ImportsClient({ items }: { items: ImportBatchDto[] }) {
       header: 'وضعیت',
       render: (r) => {
         const m = STATUS_META[r.status] ?? STATUS_META.PENDING;
-        return <Badge variant={m.variant}>{m.icon} {m.label}</Badge>;
+        return (
+          <Badge variant={m.variant}>
+            {m.icon} {m.label}
+          </Badge>
+        );
       },
     },
     {
@@ -83,7 +107,10 @@ export function ImportsClient({ items }: { items: ImportBatchDto[] }) {
       render: (r) => (
         <div className="flex items-center gap-1">
           <button
-            onClick={(e) => { e.stopPropagation(); setDetail(r); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setDetail(r);
+            }}
             className="rounded-lg border border-[var(--color-border)] p-1.5 text-[var(--color-foreground-muted)] transition-colors hover:bg-[var(--color-brand-50)] hover:text-[var(--color-brand-700)]"
             aria-label="جزئیات"
           >
@@ -91,7 +118,10 @@ export function ImportsClient({ items }: { items: ImportBatchDto[] }) {
           </button>
           {r.status === 'COMPLETED' && (
             <button
-              onClick={(e) => { e.stopPropagation(); setConfirmUndo(r); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setConfirmUndo(r);
+              }}
               className="rounded-lg border border-[var(--color-border)] p-1.5 text-[var(--color-foreground-muted)] transition-colors hover:bg-amber-50 hover:text-amber-700"
               aria-label="بازگردانی"
             >
@@ -106,7 +136,12 @@ export function ImportsClient({ items }: { items: ImportBatchDto[] }) {
   return (
     <div>
       <div className="mb-4 flex flex-wrap gap-2.5">
-        <Button variant="secondary" icon={<Undo2 size={16} />} onClick={() => setConfirmLast(true)} disabled={items.length === 0}>
+        <Button
+          variant="secondary"
+          icon={<Undo2 size={16} />}
+          onClick={() => setConfirmLast(true)}
+          disabled={items.length === 0}
+        >
           بازگردانی آخرین ایمپورت
         </Button>
       </div>
@@ -150,7 +185,10 @@ export function ImportsClient({ items }: { items: ImportBatchDto[] }) {
                 ['غیرفعال‌شده', detail.deactivatedCount],
                 ['تاریخ ثبت', detail.createdAt],
               ].map(([k, v]) => (
-                <div key={String(k)} className="rounded-lg border border-[var(--color-border-subtle)] px-3.5 py-2.5">
+                <div
+                  key={String(k)}
+                  className="rounded-lg border border-[var(--color-border-subtle)] px-3.5 py-2.5"
+                >
                   <dt className="text-[11px] text-[var(--color-foreground-muted)]">{k}</dt>
                   <dd className="mt-0.5 text-sm font-semibold">
                     {typeof v === 'number' ? toPersianDigits(v) : String(v)}
@@ -209,7 +247,11 @@ export function ImportsClient({ items }: { items: ImportBatchDto[] }) {
           setBusy(false);
           setConfirmLast(false);
           if (res.ok) {
-            toast.push({ kind: 'success', title: 'بازگردانی انجام شد', description: `${toPersianDigits(res.result.undone)} رکورد بازگردانی شد` });
+            toast.push({
+              kind: 'success',
+              title: 'بازگردانی انجام شد',
+              description: `${toPersianDigits(res.result.undone)} رکورد بازگردانی شد`,
+            });
             router.refresh();
           } else {
             toast.push({ kind: 'error', title: 'خطا', description: res.error });

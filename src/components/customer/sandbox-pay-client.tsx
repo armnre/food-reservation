@@ -9,7 +9,9 @@ import { confirmSandboxPaymentAction, failSandboxPaymentAction } from '@/server/
 import { formatToman } from '@/lib/money';
 
 export function SandboxPayClient({
-  paymentId, amountRials, currentBalance,
+  paymentId,
+  amountRials,
+  currentBalance,
 }: {
   paymentId: string;
   amountRials: number;

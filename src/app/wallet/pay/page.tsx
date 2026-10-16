@@ -53,7 +53,16 @@ export default async function PayPage({
         <div className="overflow-hidden rounded-2xl border border-white/10 bg-[var(--color-surface)]/97 shadow-[0_40px_90px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
           <div className="border-b border-[var(--color-border-subtle)] px-7 py-6 text-center">
             <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-[var(--color-brand-50)] text-[var(--color-brand-800)]">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <rect x="2" y="5" width="20" height="14" rx="2" />
                 <line x1="2" y1="10" x2="22" y2="10" />
               </svg>
@@ -87,7 +96,12 @@ export default async function PayPage({
             ) : (
               <div className="mt-5 rounded-xl border border-[var(--color-border)] p-4 text-center">
                 <p className="text-sm font-semibold">
-                  وضعیت پرداخت: {payment.status === 'COMPLETED' ? 'موفق' : payment.status === 'FAILED' ? 'ناموفق' : payment.status}
+                  وضعیت پرداخت:{' '}
+                  {payment.status === 'COMPLETED'
+                    ? 'موفق'
+                    : payment.status === 'FAILED'
+                      ? 'ناموفق'
+                      : payment.status}
                 </p>
                 <p className="mt-1.5 text-xs text-[var(--color-foreground-muted)]">
                   موجودی فعلی: {formatToman(balance)}

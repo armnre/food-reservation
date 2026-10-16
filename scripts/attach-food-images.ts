@@ -19,8 +19,8 @@ const MAPPING: Record<string, string> = {
   'عدس پلو': 'adas-polo',
   'سالاد فصل': 'salad-fasel',
   'ماست و خیار': 'mast-khiar',
-  'شله‌زرد': 'sholeh-zard',
-  'دوغ': 'doogh',
+  شله‌زرد: 'sholeh-zard',
+  دوغ: 'doogh',
 };
 
 async function main() {
@@ -45,20 +45,25 @@ async function main() {
       const buf = await fs.readFile(srcPath);
       const destImg = path.join('foods', `${key}.webp`);
       const destThumb = path.join('foods', `${key}-thumb.webp`);
-      await sharp(buf).resize(800, 800, { fit: 'inside', withoutEnlargement: true }).webp({ quality: 82 })
+      await sharp(buf)
+        .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 82 })
         .toFile(path.join(env.uploadDir, destImg));
-      await sharp(buf).resize(200, 200, { fit: 'cover' }).webp({ quality: 78 })
+      await sharp(buf)
+        .resize(200, 200, { fit: 'cover' })
+        .webp({ quality: 78 })
         .toFile(path.join(env.uploadDir, destThumb));
       imagePath = destImg;
       thumbPath = destThumb;
     }
 
-    await db.update(foods)
-      .set({ imagePath, thumbPath, updatedAt: new Date() })
-      .where(eq(foods.id, f.id));
+    await db.update(foods).set({ imagePath, thumbPath, updatedAt: new Date() }).where(eq(foods.id, f.id));
     console.log(`  ${f.name} ← ${slug}`);
   }
   console.log('✔ تصاویر غذا متصل شدند');
   process.exit(0);
 }
-main().catch((e) => { console.error(e); process.exit(1); });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

@@ -4,7 +4,13 @@ import { db } from '@/db';
 import { users, studentProfiles, staffProfiles, sessions, loginAttempts } from '@/db/schema';
 import { and, eq, gt, isNull, or, sql, lt } from 'drizzle-orm';
 import { encryptSecret, decryptSecret, blindIndex, safeEqual, hashToken, generateToken } from '@/lib/crypto';
-import { normalizeNationalCode, normalizeStudentNumber, validatePersonalPassword, generateTemporaryPassword, toLatinDigits } from '@/lib/validation';
+import {
+  normalizeNationalCode,
+  normalizeStudentNumber,
+  validatePersonalPassword,
+  generateTemporaryPassword,
+  toLatinDigits,
+} from '@/lib/validation';
 import { kvGet, kvSet, kvDel, kvIncrWindow, kvTake, kvTtl } from '@/lib/rate-limit';
 import { audit, actorFromUser, type AuditActor } from '@/lib/audit';
 import { env } from '@/lib/env';
@@ -85,7 +91,12 @@ export async function issueCaptcha(identifier: string, ip: string): Promise<Capt
   return { token, question: `${a} ${op.sym} ${b} چند می‌شود؟` };
 }
 
-export async function verifyCaptcha(identifier: string, ip: string, token: string, answer: string): Promise<boolean> {
+export async function verifyCaptcha(
+  identifier: string,
+  ip: string,
+  token: string,
+  answer: string,
+): Promise<boolean> {
   const expectedToken = await kvGet(captchaKey(identifier, ip));
   if (!expectedToken || !safeEqual(expectedToken, token)) return false;
   const expected = await kvTake(`captcha:answer:${token}`);
@@ -197,48 +208,131 @@ export async function login(input: LoginInput): Promise<LoginOutcome> {
   const ipAttempts = await kvIncrWindow(ipKey(input.ip), LOCK_WINDOW_SECONDS);
   if (ipAttempts > IP_RATE_LIMIT) {
     const lock = await getLockState(identifier, input.ip);
-    return { ok: false, error: 'تعداد درخواست‌های ورود از این نشانی بیش از حد مجاز است. لطفاً بعداً تلاش کنید.', lock };
+    return {
+      ok: false,
+      error: 'تعداد درخواست‌های ورود از این نشانی بیش از حد مجاز است. لطفاً بعداً تلاش کنید.',
+      lock,
+    };
   }
 
-  const [attempt] = await db.insert(loginAttempts).values({identifier,ip:input.ip,success:false}).returning({id:loginAttempts.id});
-  const lock = await getLockState(identifier,input.ip);
-  if(lock.locked) return {ok:false,error:'تلاش‌های ورود از این دستگاه بیش از حد مجاز است. لطفاً ۱۵ دقیقه دیگر تلاش کنید.',lock};
-  if(lock.captchaRequired && (!input.captchaToken||!input.captchaAnswer||!await verifyCaptcha(identifier,input.ip,input.captchaToken,input.captchaAnswer))){
-    return {ok:false,error:'برای ادامه، پاسخ امنیتی را درست وارد کنید.',lock,captcha:await issueCaptcha(identifier,input.ip)};
+  const [attempt] = await db
+    .insert(loginAttempts)
+    .values({ identifier, ip: input.ip, success: false })
+    .returning({ id: loginAttempts.id });
+  const lock = await getLockState(identifier, input.ip);
+  if (lock.locked)
+    return {
+      ok: false,
+      error: 'تلاش‌های ورود از این دستگاه بیش از حد مجاز است. لطفاً ۱۵ دقیقه دیگر تلاش کنید.',
+      lock,
+    };
+  if (
+    lock.captchaRequired &&
+    (!input.captchaToken ||
+      !input.captchaAnswer ||
+      !(await verifyCaptcha(identifier, input.ip, input.captchaToken, input.captchaAnswer)))
+  ) {
+    return {
+      ok: false,
+      error: 'برای ادامه، پاسخ امنیتی را درست وارد کنید.',
+      lock,
+      captcha: await issueCaptcha(identifier, input.ip),
+    };
   }
-  const [user] = await db.select().from(users).where(and(eq(users.username,identifier),isNull(users.deletedAt))).limit(1);
-  const [student] = user?.role==='STUDENT' ? await db.select().from(studentProfiles).where(eq(studentProfiles.userId,user.id)).limit(1) : [];
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(and(eq(users.username, identifier), isNull(users.deletedAt)))
+    .limit(1);
+  const [student] =
+    user?.role === 'STUDENT'
+      ? await db.select().from(studentProfiles).where(eq(studentProfiles.userId, user.id)).limit(1)
+      : [];
   let valid = false;
-  if(user?.passwordHash){try{valid=await verify(user.passwordHash,input.password)}catch{valid=false}}
-  else {await burnVerifyTime(input.password);if(user?.role==='STUDENT'&&student&&user.mustChangePassword){valid=safeEqual(blindIndex(toLatinDigits(input.password).trim()),student.nationalCodeHash)}}
-  const kindMatches = user && (input.kind==='STUDENT'?user.role==='STUDENT':user.role!=='STUDENT');
-  if(!valid||!kindMatches){
-    const next = await registerFailure(identifier,input.ip,actor);
-    if(user) await db.update(users).set({failedLoginCount:sql`${users.failedLoginCount}+1`,updatedAt:new Date()}).where(eq(users.id,user.id));
-    await audit({actor,action:'auth:login_failed',entityType:'login',after:{identifier}});
-    return {ok:false,error:GENERIC_ERROR,lock:next,captcha:next.captchaRequired?await issueCaptcha(identifier,input.ip):undefined};
+  if (user?.passwordHash) {
+    try {
+      valid = await verify(user.passwordHash, input.password);
+    } catch {
+      valid = false;
+    }
+  } else {
+    await burnVerifyTime(input.password);
+    if (user?.role === 'STUDENT' && student && user.mustChangePassword) {
+      valid = safeEqual(blindIndex(toLatinDigits(input.password).trim()), student.nationalCodeHash);
+    }
   }
-  if(!user.isActive||(student&&student.status!=='ACTIVE'))return {ok:false,error:'حساب شما فعال نیست؛ به معاونت دانشجویی مراجعه کنید.',lock};
-  const token=generateToken(32);const mustChange=user.mustChangePassword||user.passwordHash===null;
-  await db.transaction(async tx=>{
-    await tx.insert(sessions).values({userId:user.id,tokenHash:hashToken(token),ip:input.ip,userAgent:input.userAgent??null,expiresAt:new Date(Date.now()+env.sessionTtlHours*3600000)});
-    await tx.update(users).set({lastLoginAt:new Date(),failedLoginCount:0,lockedUntil:null,mustChangePassword:mustChange,updatedAt:new Date()}).where(eq(users.id,user.id));
-    await tx.update(loginAttempts).set({success:true}).where(eq(loginAttempts.id,attempt.id));
+  const kindMatches = user && (input.kind === 'STUDENT' ? user.role === 'STUDENT' : user.role !== 'STUDENT');
+  if (!valid || !kindMatches) {
+    const next = await registerFailure(identifier, input.ip, actor);
+    if (user)
+      await db
+        .update(users)
+        .set({ failedLoginCount: sql`${users.failedLoginCount}+1`, updatedAt: new Date() })
+        .where(eq(users.id, user.id));
+    await audit({ actor, action: 'auth:login_failed', entityType: 'login', after: { identifier } });
+    return {
+      ok: false,
+      error: GENERIC_ERROR,
+      lock: next,
+      captcha: next.captchaRequired ? await issueCaptcha(identifier, input.ip) : undefined,
+    };
+  }
+  if (!user.isActive || (student && student.status !== 'ACTIVE'))
+    return { ok: false, error: 'حساب شما فعال نیست؛ به معاونت دانشجویی مراجعه کنید.', lock };
+  const token = generateToken(32);
+  const mustChange = user.mustChangePassword || user.passwordHash === null;
+  await db.transaction(async (tx) => {
+    await tx.insert(sessions).values({
+      userId: user.id,
+      tokenHash: hashToken(token),
+      ip: input.ip,
+      userAgent: input.userAgent ?? null,
+      expiresAt: new Date(Date.now() + env.sessionTtlHours * 3600000),
+    });
+    await tx
+      .update(users)
+      .set({
+        lastLoginAt: new Date(),
+        failedLoginCount: 0,
+        lockedUntil: null,
+        mustChangePassword: mustChange,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, user.id));
+    await tx.update(loginAttempts).set({ success: true }).where(eq(loginAttempts.id, attempt.id));
   });
-  await registerSuccess(identifier,input.ip);
-  await audit({actor:{...actor,id:user.id,role:user.role},action:'auth:login_success',entityType:'user',entityId:user.id});
-  return {ok:true,userId:user.id,mustChangePassword:mustChange,redirectTo:mustChange?'/change-password':defaultHomeForRole(user.role),token};
+  await registerSuccess(identifier, input.ip);
+  await audit({
+    actor: { ...actor, id: user.id, role: user.role },
+    action: 'auth:login_success',
+    entityType: 'user',
+    entityId: user.id,
+  });
+  return {
+    ok: true,
+    userId: user.id,
+    mustChangePassword: mustChange,
+    redirectTo: mustChange ? '/change-password' : defaultHomeForRole(user.role),
+    token,
+  };
 }
 
 export function defaultHomeForRole(role: string): string {
   switch (role) {
-    case 'STUDENT': return '/student';
-    case 'STAFF': return '/staff';
-    case 'VICE_STUDENT': return '/vice';
-    case 'NUTRITION_MANAGER': return '/nutrition';
-    case 'CAFETERIA_OPERATOR': return '/cafeteria';
-    case 'SUPER_ADMIN': return '/admin';
-    default: return '/login';
+    case 'STUDENT':
+      return '/student';
+    case 'STAFF':
+      return '/staff';
+    case 'VICE_STUDENT':
+      return '/vice';
+    case 'NUTRITION_MANAGER':
+      return '/nutrition';
+    case 'CAFETERIA_OPERATOR':
+      return '/cafeteria';
+    case 'SUPER_ADMIN':
+      return '/admin';
+    default:
+      return '/login';
   }
 }
 
@@ -250,7 +344,15 @@ export async function getSessionUser(token: string | undefined | null) {
     .select({ session: sessions, user: users })
     .from(sessions)
     .innerJoin(users, eq(sessions.userId, users.id))
-    .where(and(eq(sessions.tokenHash, hashToken(token)), gt(sessions.expiresAt, new Date()), isNull(sessions.revokedAt),isNull(users.deletedAt),eq(users.isActive,true)))
+    .where(
+      and(
+        eq(sessions.tokenHash, hashToken(token)),
+        gt(sessions.expiresAt, new Date()),
+        isNull(sessions.revokedAt),
+        isNull(users.deletedAt),
+        eq(users.isActive, true),
+      ),
+    )
     .limit(1);
   return rows[0] ?? null;
 }
@@ -291,12 +393,17 @@ export async function touchSession(sessionId: string): Promise<void> {
 }
 
 /** پاک‌سازی دوره‌ای: نشست‌های منقضی/ابطال‌شدهٔ کهنه و تلاش‌های ورود قدیمی‌تر از ۳۰ روز */
-export async function cleanupExpiredSessionsAndLoginAttempts(): Promise<{ sessions: number; attempts: number }> {
+export async function cleanupExpiredSessionsAndLoginAttempts(): Promise<{
+  sessions: number;
+  attempts: number;
+}> {
   const cutoff = new Date(Date.now() - 30 * 24 * 3600 * 1000);
-  const s = await db.delete(sessions)
+  const s = await db
+    .delete(sessions)
     .where(sql`${sessions.expiresAt} < now() - interval '7 days' OR ${sessions.revokedAt} < ${cutoff}`)
     .returning({ id: sessions.id });
-  const a = await db.delete(loginAttempts)
+  const a = await db
+    .delete(loginAttempts)
     .where(lt(loginAttempts.createdAt, cutoff))
     .returning({ id: loginAttempts.id });
   return { sessions: s.length, attempts: a.length };
@@ -304,7 +411,13 @@ export async function cleanupExpiredSessionsAndLoginAttempts(): Promise<{ sessio
 
 /* ───────────── تعویض رمز ───────────── */
 
-export async function changeOwnPassword(userId: string, currentPassword: string, newPassword: string, actor: AuditActor, currentSessionId?: string) {
+export async function changeOwnPassword(
+  userId: string,
+  currentPassword: string,
+  newPassword: string,
+  actor: AuditActor,
+  currentSessionId?: string,
+) {
   const rows = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   const user = rows[0];
   if (!user) return { ok: false as const, error: 'کاربر یافت نشد' };
@@ -316,11 +429,18 @@ export async function changeOwnPassword(userId: string, currentPassword: string,
   currentOk = await withArgon2Gate(() => verify(user.passwordHash as string, currentPassword));
   if (!currentOk) return { ok: false as const, error: 'رمز فعلی اشتباه است' };
 
-  const studentRows = await db.select({ nc: studentProfiles.nationalCode, sn: studentProfiles.studentNumber })
-    .from(studentProfiles).where(eq(studentProfiles.userId, userId)).limit(1);
+  const studentRows = await db
+    .select({ nc: studentProfiles.nationalCode, sn: studentProfiles.studentNumber })
+    .from(studentProfiles)
+    .where(eq(studentProfiles.userId, userId))
+    .limit(1);
   let nationalCode: string | null = null;
   if (studentRows[0]) {
-    try { nationalCode = decryptSecret(studentRows[0].nc); } catch { nationalCode = null; }
+    try {
+      nationalCode = decryptSecret(studentRows[0].nc);
+    } catch {
+      nationalCode = null;
+    }
   }
 
   const problem = validatePersonalPassword(newPassword, {
@@ -329,30 +449,52 @@ export async function changeOwnPassword(userId: string, currentPassword: string,
   });
   if (problem) return { ok: false as const, error: problem };
 
-  await db.update(users).set({
-    passwordHash: await withArgon2Gate(() => hash(newPassword, ARGON2_OPTIONS)),
-    mustChangePassword: false,
-    updatedAt: new Date(),
-  }).where(eq(users.id, userId));
+  await db
+    .update(users)
+    .set({
+      passwordHash: await withArgon2Gate(() => hash(newPassword, ARGON2_OPTIONS)),
+      mustChangePassword: false,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, userId));
 
   // ابطال همهٔ نشست‌های دیگر — تعویض رمز یعنی نشست‌های قبلی نامعتبرند
   const revoked = await revokeAllSessions(userId, currentSessionId);
-  await audit({ actor, action: 'auth:password_changed', entityType: 'user', entityId: userId, after: { revokedSessions: revoked } });
+  await audit({
+    actor,
+    action: 'auth:password_changed',
+    entityType: 'user',
+    entityId: userId,
+    after: { revokedSessions: revoked },
+  });
   return { ok: true as const, revoked };
 }
 
 /** تعیین رمز شخصی برای اولین ورود (بدون نیاز به رمز فعلی) */
-export async function setInitialPassword(userId: string, newPassword: string, actor: AuditActor, currentSessionId?: string) {
+export async function setInitialPassword(
+  userId: string,
+  newPassword: string,
+  actor: AuditActor,
+  currentSessionId?: string,
+) {
   const rows = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   const user = rows[0];
   if (!user) return { ok: false as const, error: 'کاربر یافت نشد' };
-  if (!user.mustChangePassword) return {ok:false as const,error:'این حساب به تعیین رمز اولیه نیاز ندارد'};
+  if (!user.mustChangePassword)
+    return { ok: false as const, error: 'این حساب به تعیین رمز اولیه نیاز ندارد' };
 
-  const studentRows = await db.select({ nc: studentProfiles.nationalCode, sn: studentProfiles.studentNumber })
-    .from(studentProfiles).where(eq(studentProfiles.userId, userId)).limit(1);
+  const studentRows = await db
+    .select({ nc: studentProfiles.nationalCode, sn: studentProfiles.studentNumber })
+    .from(studentProfiles)
+    .where(eq(studentProfiles.userId, userId))
+    .limit(1);
   let nationalCode: string | null = null;
   if (studentRows[0]) {
-    try { nationalCode = decryptSecret(studentRows[0].nc); } catch { nationalCode = null; }
+    try {
+      nationalCode = decryptSecret(studentRows[0].nc);
+    } catch {
+      nationalCode = null;
+    }
   }
 
   const problem = validatePersonalPassword(newPassword, {
@@ -361,15 +503,24 @@ export async function setInitialPassword(userId: string, newPassword: string, ac
   });
   if (problem) return { ok: false as const, error: problem };
 
-  await db.update(users).set({
-    passwordHash: await withArgon2Gate(() => hash(newPassword, ARGON2_OPTIONS)),
-    mustChangePassword: false,
-    updatedAt: new Date(),
-  }).where(eq(users.id, userId));
+  await db
+    .update(users)
+    .set({
+      passwordHash: await withArgon2Gate(() => hash(newPassword, ARGON2_OPTIONS)),
+      mustChangePassword: false,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, userId));
 
   // ابطال همهٔ نشست‌های دیگر پس از تعیین رمز اولیه
   const revoked = await revokeAllSessions(userId);
-  await audit({ actor, action: 'auth:password_changed', entityType: 'user', entityId: userId, after: { kind: 'initial', revokedSessions: revoked } });
+  await audit({
+    actor,
+    action: 'auth:password_changed',
+    entityType: 'user',
+    entityId: userId,
+    after: { kind: 'initial', revokedSessions: revoked },
+  });
   return { ok: true as const, revoked };
 }
 
@@ -380,11 +531,14 @@ export async function resetStudentPassword(userId: string, actor: AuditActor) {
   const user = rows[0];
   if (!user) return { ok: false as const, error: 'کاربر یافت نشد' };
 
-  await db.update(users).set({
-    passwordHash: null,
-    mustChangePassword: true,
-    updatedAt: new Date(),
-  }).where(eq(users.id, userId));
+  await db
+    .update(users)
+    .set({
+      passwordHash: null,
+      mustChangePassword: true,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, userId));
 
   const revoked = await revokeAllSessions(userId);
   await audit({
@@ -404,11 +558,14 @@ export async function resetStaffPassword(userId: string, actor: AuditActor) {
   if (!user) return { ok: false as const, error: 'کاربر یافت نشد' };
 
   const temporary = generateTemporaryPassword(10);
-  await db.update(users).set({
-    passwordHash: await withArgon2Gate(() => hash(temporary, ARGON2_OPTIONS)),
-    mustChangePassword: true,
-    updatedAt: new Date(),
-  }).where(eq(users.id, userId));
+  await db
+    .update(users)
+    .set({
+      passwordHash: await withArgon2Gate(() => hash(temporary, ARGON2_OPTIONS)),
+      mustChangePassword: true,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, userId));
 
   const revoked = await revokeAllSessions(userId);
   await audit({

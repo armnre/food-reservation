@@ -30,9 +30,15 @@ function intEnv(name: string, fallback: number, min: number, max: number): numbe
 }
 
 export const env = {
-  get databaseUrl() { return required('DATABASE_URL'); },
-  get redisUrl() { return required('REDIS_URL'); },
-  get isProduction() { return process.env.NODE_ENV === 'production'; },
+  get databaseUrl() {
+    return required('DATABASE_URL');
+  },
+  get redisUrl() {
+    return required('REDIS_URL');
+  },
+  get isProduction() {
+    return process.env.NODE_ENV === 'production';
+  },
 
   /** REDIS_STRICT=true (پیش‌فرض در production) نبود Redis را خطای ۵۰۳ می‌کند؛ false فقط وقتی Redis واقعاً در دسترس نیست. */
   get redisStrict() {
@@ -40,8 +46,12 @@ export const env = {
     return process.env.NODE_ENV === 'production';
   },
 
-  get dataEncryptionKey() { return key('DATA_ENCRYPTION_KEY'); },
-  get dataHashKey() { return key('DATA_HASH_KEY'); },
+  get dataEncryptionKey() {
+    return key('DATA_ENCRYPTION_KEY');
+  },
+  get dataHashKey() {
+    return key('DATA_HASH_KEY');
+  },
 
   get trustedProxyHops() {
     const n = Number(process.env.TRUSTED_PROXY_HOPS || 0);
@@ -50,13 +60,21 @@ export const env = {
   },
 
   /** TTL اسلایدینگ نشست — از متغیر محیطی، پیش‌فرض ۸ ساعت */
-  get sessionTtlHours() { return intEnv('SESSION_TTL_HOURS', 8, 1, 72); },
+  get sessionTtlHours() {
+    return intEnv('SESSION_TTL_HOURS', 8, 1, 72);
+  },
 
   /** سقف مطلق عمر نشست از لحظهٔ ورود — تمدید اسلایدینگ هرگز از آن عبور نمی‌کند */
-  get sessionAbsoluteTtlHours() { return intEnv('SESSION_ABSOLUTE_TTL_HOURS', 24, 1, 168); },
+  get sessionAbsoluteTtlHours() {
+    return intEnv('SESSION_ABSOLUTE_TTL_HOURS', 24, 1, 168);
+  },
 
-  get sessionCookieName() { return process.env.SESSION_COOKIE_NAME || 'hm_sofreh_session'; },
-  get uploadDir() { return process.env.UPLOAD_DIR || './uploads'; },
+  get sessionCookieName() {
+    return process.env.SESSION_COOKIE_NAME || 'hm_sofreh_session';
+  },
+  get uploadDir() {
+    return process.env.UPLOAD_DIR || './uploads';
+  },
 };
 
 export function assertProductionReady() {

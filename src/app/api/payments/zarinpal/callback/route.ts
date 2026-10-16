@@ -11,12 +11,16 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   const params: Record<string, string> = {};
-  request.nextUrl.searchParams.forEach((v, k) => { params[k] = v; });
+  request.nextUrl.searchParams.forEach((v, k) => {
+    params[k] = v;
+  });
   const paymentId = params.paymentId;
 
   const verified = await zarinpalGateway.verifyCallback?.(params);
   if (!verified || !verified.ok || verified.paymentId !== paymentId) {
-    return NextResponse.redirect(new URL(`/wallet/pay?paymentId=${paymentId ?? ''}&result=fail`, request.url));
+    return NextResponse.redirect(
+      new URL(`/wallet/pay?paymentId=${paymentId ?? ''}&result=fail`, request.url),
+    );
   }
 
   const res = await completePayment({
@@ -26,5 +30,7 @@ export async function GET(request: NextRequest) {
   });
 
   const result = res.ok ? 'success' : 'fail';
-  return NextResponse.redirect(new URL(`/wallet/pay?paymentId=${verified.paymentId}&result=${result}`, request.url));
+  return NextResponse.redirect(
+    new URL(`/wallet/pay?paymentId=${verified.paymentId}&result=${result}`, request.url),
+  );
 }

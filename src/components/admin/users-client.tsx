@@ -23,13 +23,21 @@ export interface AdminUserItem {
 }
 
 const ROLE_OPTIONS = [
-  ['ALL', 'همه نقش‌ها'], ['STUDENT', 'دانشجو'], ['STAFF', 'کارمند'],
-  ['VICE_STUDENT', 'معاونت دانشجویی'], ['NUTRITION_MANAGER', 'مدیر تغذیه'],
-  ['CAFETERIA_OPERATOR', 'کارمند سلف'], ['SUPER_ADMIN', 'مدیر ارشد'],
+  ['ALL', 'همه نقش‌ها'],
+  ['STUDENT', 'دانشجو'],
+  ['STAFF', 'کارمند'],
+  ['VICE_STUDENT', 'معاونت دانشجویی'],
+  ['NUTRITION_MANAGER', 'مدیر تغذیه'],
+  ['CAFETERIA_OPERATOR', 'کارمند سلف'],
+  ['SUPER_ADMIN', 'مدیر ارشد'],
 ];
 
 export function UsersClient({
-  items, total, page, pageSize, initialQuery,
+  items,
+  total,
+  page,
+  pageSize,
+  initialQuery,
 }: {
   items: AdminUserItem[];
   total: number;
@@ -64,7 +72,9 @@ export function UsersClient({
           </div>
           <div className="min-w-0">
             <p className="truncate text-xs font-semibold">{r.displayName}</p>
-            <p className="font-mono text-[10px] text-[var(--color-foreground-muted)]" dir="ltr">{r.username}</p>
+            <p className="font-mono text-[10px] text-[var(--color-foreground-muted)]" dir="ltr">
+              {r.username}
+            </p>
           </div>
         </div>
       ),
@@ -80,13 +90,23 @@ export function UsersClient({
         </div>
       ),
     },
-    { key: 'lastLoginAt', header: 'آخرین ورود', hideOnMobile: true, render: (r) => <span className="text-[11px] text-[var(--color-foreground-muted)]">{r.lastLoginAt ?? 'هرگز'}</span> },
+    {
+      key: 'lastLoginAt',
+      header: 'آخرین ورود',
+      hideOnMobile: true,
+      render: (r) => (
+        <span className="text-[11px] text-[var(--color-foreground-muted)]">{r.lastLoginAt ?? 'هرگز'}</span>
+      ),
+    },
     {
       key: 'actions',
       header: 'عملیات',
       render: (r) => (
         <button
-          onClick={(e) => { e.stopPropagation(); setConfirmToggle(r); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            setConfirmToggle(r);
+          }}
           className={`rounded-lg border p-1.5 transition-colors ${
             r.isActive
               ? 'border-[var(--color-border)] text-[var(--color-foreground-muted)] hover:bg-rose-50 hover:text-rose-600'
@@ -106,15 +126,23 @@ export function UsersClient({
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-[220px] flex-1">
             <Field label="جستجو" htmlFor="uq">
-              <TextInput id="uq" value={query} onChange={(e) => setQuery(e.target.value)}
+              <TextInput
+                id="uq"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && navigate({ q: query, page: 1 })}
-                placeholder="نام یا نام کاربری" />
+                placeholder="نام یا نام کاربری"
+              />
             </Field>
           </div>
           <div className="w-52">
             <Field label="نقش" htmlFor="urole">
               <Select id="urole" value={role} onChange={(e) => navigate({ role: e.target.value, page: 1 })}>
-                {ROLE_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                {ROLE_OPTIONS.map(([v, l]) => (
+                  <option key={v} value={v}>
+                    {l}
+                  </option>
+                ))}
               </Select>
             </Field>
           </div>

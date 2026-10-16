@@ -17,29 +17,40 @@ export default function ChangePasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
-  const strength = !pw ? 0 : Math.min(4,
-    (pw.length >= 8 ? 1 : 0) +
-    (pw.length >= 12 ? 1 : 0) +
-    (/[a-z]/.test(pw) && /[A-Z]/.test(pw) ? 1 : 0) +
-    (/\d/.test(pw) && /[^\w\s]/.test(pw) ? 1 : 0),
-  );
+  const strength = !pw
+    ? 0
+    : Math.min(
+        4,
+        (pw.length >= 8 ? 1 : 0) +
+          (pw.length >= 12 ? 1 : 0) +
+          (/[a-z]/.test(pw) && /[A-Z]/.test(pw) ? 1 : 0) +
+          (/\d/.test(pw) && /[^\w\s]/.test(pw) ? 1 : 0),
+      );
   const strengthLabels = ['خیلی ضعیف', 'ضعیف', 'متوسط', 'خوب', 'عالی'];
   const strengthColors = ['bg-rose-400', 'bg-orange-400', 'bg-amber-400', 'bg-emerald-400', 'bg-emerald-500'];
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (pw !== confirm) { setError('تکرار رمز عبور مطابقت ندارد'); return; }
+    if (pw !== confirm) {
+      setError('تکرار رمز عبور مطابقت ندارد');
+      return;
+    }
     setBusy(true);
     const res = await setInitialPasswordAction(pw);
     setBusy(false);
-    if (!res.ok) { setError(res.error); return; }
+    if (!res.ok) {
+      setError(res.error);
+      return;
+    }
     setDone(true);
   }
 
   useEffect(() => {
     if (done) {
-      const t = window.setTimeout(() => { window.location.href = '/'; }, 1400);
+      const t = window.setTimeout(() => {
+        window.location.href = '/';
+      }, 1400);
       return () => window.clearTimeout(t);
     }
   }, [done]);
@@ -115,7 +126,10 @@ export default function ChangePasswordPage() {
                     <div>
                       <div className="flex gap-1">
                         {[0, 1, 2, 3].map((i) => (
-                          <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${i < strength ? strengthColors[strength] : 'bg-[var(--color-muted)]'}`} />
+                          <div
+                            key={i}
+                            className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${i < strength ? strengthColors[strength] : 'bg-[var(--color-muted)]'}`}
+                          />
                         ))}
                       </div>
                       <p className="mt-1.5 text-[11px] text-[var(--color-foreground-muted)]">
@@ -138,13 +152,18 @@ export default function ChangePasswordPage() {
                   </Field>
 
                   {error && (
-                    <div className="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3" role="alert">
+                    <div
+                      className="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3"
+                      role="alert"
+                    >
                       <AlertCircle size={17} className="mt-0.5 shrink-0 text-rose-500" />
                       <p className="text-xs font-medium leading-relaxed text-rose-700">{error}</p>
                     </div>
                   )}
 
-                  <Button type="submit" block size="lg" loading={busy}>ثبت رمز عبور</Button>
+                  <Button type="submit" block size="lg" loading={busy}>
+                    ثبت رمز عبور
+                  </Button>
                 </form>
 
                 <div className="mt-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-muted)]/50 p-3.5">

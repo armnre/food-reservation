@@ -3,9 +3,18 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Wallet, Plus, ArrowUpFromLine, History, ArrowDownToLine,
-  TrendingUp, TrendingDown, AlertCircle, Sparkles, Zap,
-  ChevronLeft, Receipt,
+  Wallet,
+  Plus,
+  ArrowUpFromLine,
+  History,
+  ArrowDownToLine,
+  TrendingUp,
+  TrendingDown,
+  AlertCircle,
+  Sparkles,
+  Zap,
+  ChevronLeft,
+  Receipt,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/data';
 import { Button } from '@/components/ui/button';
@@ -42,15 +51,19 @@ const ENTRY_META: Record<string, { label: string; tone: 'in' | 'out' | 'neutral'
   SALE: { label: 'فروش', tone: 'in', emoji: '💰' },
 };
 
-const PAYMENT_STATUS: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' | 'muted' }> = {
-  PENDING: { label: 'در انتظار', variant: 'warning' },
-  COMPLETED: { label: 'موفق', variant: 'success' },
-  FAILED: { label: 'ناموفق', variant: 'danger' },
-  REFUNDED: { label: 'برگشت‌شده', variant: 'muted' },
-};
+const PAYMENT_STATUS: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' | 'muted' }> =
+  {
+    PENDING: { label: 'در انتظار', variant: 'warning' },
+    COMPLETED: { label: 'موفق', variant: 'success' },
+    FAILED: { label: 'ناموفق', variant: 'danger' },
+    REFUNDED: { label: 'برگشت‌شده', variant: 'muted' },
+  };
 
 export function WalletStudent({
-  balanceRials, ledger, payments, menuHref,
+  balanceRials,
+  ledger,
+  payments,
+  menuHref,
 }: {
   balanceRials: number;
   ledger: LedgerEntryDto[];
@@ -102,7 +115,9 @@ export function WalletStudent({
 
   const totalIn = ledger.filter((e) => e.amountRials > 0).reduce((a, e) => a + e.amountRials, 0);
   const totalOut = ledger.filter((e) => e.amountRials < 0).reduce((a, e) => a + Math.abs(e.amountRials), 0);
-  const totalSpent = ledger.filter((e) => e.entryType === 'PURCHASE').reduce((a, e) => a + Math.abs(e.amountRials), 0);
+  const totalSpent = ledger
+    .filter((e) => e.entryType === 'PURCHASE')
+    .reduce((a, e) => a + Math.abs(e.amountRials), 0);
 
   return (
     <div className="space-y-5">
@@ -113,10 +128,13 @@ export function WalletStudent({
         transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
         className="relative overflow-hidden rounded-2xl bg-gradient-to-bl from-[var(--color-brand-950)] via-[#2c2352] to-[var(--color-brand-800)] p-6 text-white shadow-[0_24px_60px_rgba(58,45,125,0.4)]"
       >
-        <div className="absolute left-0 top-0 h-full w-2/3 opacity-20" style={{
-          backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.5) 1px, transparent 0)',
-          backgroundSize: '16px 16px',
-        }} />
+        <div
+          className="absolute left-0 top-0 h-full w-2/3 opacity-20"
+          style={{
+            backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.5) 1px, transparent 0)',
+            backgroundSize: '16px 16px',
+          }}
+        />
         <div className="absolute -right-12 -top-12 h-44 w-44 rounded-full bg-[var(--color-accent-500)] opacity-15 blur-3xl" />
         <div className="relative">
           <div className="flex items-center gap-2 text-xs text-white/60">
@@ -141,14 +159,20 @@ export function WalletStudent({
 
           <div className="mt-5 grid grid-cols-3 gap-2.5">
             <button
-              onClick={() => { setAmount(''); setTopUpOpen(true); }}
+              onClick={() => {
+                setAmount('');
+                setTopUpOpen(true);
+              }}
               className="group flex flex-col items-center gap-1 rounded-xl bg-[var(--color-accent-500)] py-3 text-white shadow-[0_8px_20px_rgba(240,128,32,0.35)] transition-all hover:scale-[1.02] active:scale-95"
             >
               <Plus size={18} strokeWidth={2.5} />
               <span className="text-[11px] font-bold">شارژ</span>
             </button>
             <button
-              onClick={() => { setAmount(''); setWithdrawOpen(true); }}
+              onClick={() => {
+                setAmount('');
+                setWithdrawOpen(true);
+              }}
               className="flex flex-col items-center gap-1 rounded-xl border border-white/20 bg-white/10 py-3 text-white backdrop-blur-sm transition-all hover:bg-white/20 active:scale-95"
             >
               <ArrowUpFromLine size={18} />
@@ -175,7 +199,9 @@ export function WalletStudent({
                 <span className="flex items-center gap-2 text-xs text-emerald-700">
                   <ArrowDownToLine size={13} /> واریز
                 </span>
-                <span className="text-xs font-bold tabular-nums text-emerald-700">{formatToman(totalIn)}</span>
+                <span className="text-xs font-bold tabular-nums text-emerald-700">
+                  {formatToman(totalIn)}
+                </span>
               </div>
               <div className="flex items-center justify-between rounded-xl bg-rose-50 p-3">
                 <span className="flex items-center gap-2 text-xs text-rose-700">
@@ -187,7 +213,9 @@ export function WalletStudent({
                 <span className="flex items-center gap-2 text-xs text-[var(--color-brand-700)]">
                   <Receipt size={13} /> خرج غذا
                 </span>
-                <span className="text-xs font-bold tabular-nums text-[var(--color-brand-800)]">{formatToman(totalSpent)}</span>
+                <span className="text-xs font-bold tabular-nums text-[var(--color-brand-800)]">
+                  {formatToman(totalSpent)}
+                </span>
               </div>
             </div>
           </div>
@@ -200,7 +228,9 @@ export function WalletStudent({
               <History size={15} className="text-[var(--color-brand-700)]" />
               تاریخچهٔ تراکنش‌ها
             </h3>
-            <span className="text-[10px] text-[var(--color-foreground-muted)]">{toPersianDigits(ledger.length)} ردیف</span>
+            <span className="text-[10px] text-[var(--color-foreground-muted)]">
+              {toPersianDigits(ledger.length)} ردیف
+            </span>
           </div>
 
           {ledger.length === 0 ? (
@@ -224,11 +254,13 @@ export function WalletStudent({
                     transition={{ delay: Math.min(i * 0.025, 0.4), duration: 0.2 }}
                     className="flex items-center gap-3 rounded-xl border border-[var(--color-border-subtle)] px-3.5 py-2.5"
                   >
-                    <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl text-base ${
-                      isIn
-                        ? 'bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-600'
-                        : 'bg-gradient-to-br from-rose-50 to-rose-100 text-rose-500'
-                    }`}>
+                    <div
+                      className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl text-base ${
+                        isIn
+                          ? 'bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-600'
+                          : 'bg-gradient-to-br from-rose-50 to-rose-100 text-rose-500'
+                      }`}
+                    >
                       {meta.emoji}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -237,8 +269,11 @@ export function WalletStudent({
                         {e.description ?? '—'} — {e.createdAt}
                       </p>
                     </div>
-                    <p className={`shrink-0 text-xs font-bold tabular-nums ${isIn ? 'text-emerald-600' : 'text-rose-500'}`}>
-                      {isIn ? '+' : '−'}{formatToman(Math.abs(e.amountRials))}
+                    <p
+                      className={`shrink-0 text-xs font-bold tabular-nums ${isIn ? 'text-emerald-600' : 'text-rose-500'}`}
+                    >
+                      {isIn ? '+' : '−'}
+                      {formatToman(Math.abs(e.amountRials))}
                     </p>
                   </motion.div>
                 );
@@ -256,7 +291,10 @@ export function WalletStudent({
             {payments.map((p) => {
               const sm = PAYMENT_STATUS[p.status] ?? PAYMENT_STATUS.PENDING;
               return (
-                <div key={p.id} className="flex items-center gap-3 rounded-xl border border-[var(--color-border-subtle)] px-3.5 py-2.5">
+                <div
+                  key={p.id}
+                  className="flex items-center gap-3 rounded-xl border border-[var(--color-border-subtle)] px-3.5 py-2.5"
+                >
                   <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--color-muted)] text-[var(--color-foreground-muted)]">
                     <Receipt size={14} />
                   </div>
@@ -280,8 +318,12 @@ export function WalletStudent({
         size="sm"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setTopUpOpen(false)}>انصراف</Button>
-            <Button variant="accent" loading={busy} onClick={doTopUp} icon={<Plus size={15} />}>ادامه به پرداخت</Button>
+            <Button variant="ghost" onClick={() => setTopUpOpen(false)}>
+              انصراف
+            </Button>
+            <Button variant="accent" loading={busy} onClick={doTopUp} icon={<Plus size={15} />}>
+              ادامه به پرداخت
+            </Button>
           </>
         }
       >
@@ -319,8 +361,12 @@ export function WalletStudent({
         size="sm"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setWithdrawOpen(false)}>انصراف</Button>
-            <Button loading={busy} onClick={doWithdraw} icon={<ArrowUpFromLine size={15} />}>ثبت درخواست</Button>
+            <Button variant="ghost" onClick={() => setWithdrawOpen(false)}>
+              انصراف
+            </Button>
+            <Button loading={busy} onClick={doWithdraw} icon={<ArrowUpFromLine size={15} />}>
+              ثبت درخواست
+            </Button>
           </>
         }
       >

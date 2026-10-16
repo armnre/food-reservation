@@ -6,7 +6,11 @@ import { ChevronLeft, ChevronRight, Search, ArrowUpDown, ArrowUp, ArrowDown, Inb
 
 /* ───────────── Badge ───────────── */
 
-export function Badge({ children, variant = 'default', className = '' }: {
+export function Badge({
+  children,
+  variant = 'default',
+  className = '',
+}: {
   children: React.ReactNode;
   variant?: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'muted' | 'accent';
   className?: string;
@@ -22,7 +26,9 @@ export function Badge({ children, variant = 'default', className = '' }: {
   };
 
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold leading-5 ${variants[variant]} ${className}`}>
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold leading-5 ${variants[variant]} ${className}`}
+    >
       {children}
     </span>
   );
@@ -30,7 +36,14 @@ export function Badge({ children, variant = 'default', className = '' }: {
 
 /* ───────────── Field / Input ───────────── */
 
-export function Field({ label, error, hint, required, children, htmlFor }: {
+export function Field({
+  label,
+  error,
+  hint,
+  required,
+  children,
+  htmlFor,
+}: {
   label?: string;
   error?: string | null;
   hint?: string;
@@ -41,7 +54,10 @@ export function Field({ label, error, hint, required, children, htmlFor }: {
   return (
     <div className="w-full">
       {label && (
-        <label htmlFor={htmlFor} className="mb-1.5 flex items-center gap-1 text-[13px] font-medium text-[var(--color-foreground)]">
+        <label
+          htmlFor={htmlFor}
+          className="mb-1.5 flex items-center gap-1 text-[13px] font-medium text-[var(--color-foreground)]"
+        >
           {label}
           {required && <span className="text-rose-500">*</span>}
         </label>
@@ -59,11 +75,24 @@ export function Field({ label, error, hint, required, children, htmlFor }: {
 const inputCls =
   'w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2.5 text-sm text-[var(--color-foreground)] placeholder:text-[var(--color-foreground-muted)]/50 shadow-[inset_0_1px_2px_rgba(58,45,125,0.04)] transition-all duration-150 focus:border-[var(--color-brand-700)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-700)]/20 disabled:opacity-60';
 
-export function TextInput({ error, className = '', ...props }: React.InputHTMLAttributes<HTMLInputElement> & { error?: string | null }) {
-  return <input className={`${inputCls} ${error ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20' : ''} ${className}`} {...props} />;
+export function TextInput({
+  error,
+  className = '',
+  ...props
+}: React.InputHTMLAttributes<HTMLInputElement> & { error?: string | null }) {
+  return (
+    <input
+      className={`${inputCls} ${error ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20' : ''} ${className}`}
+      {...props}
+    />
+  );
 }
 
-export function Select({ className = '', children, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) {
+export function Select({
+  className = '',
+  children,
+  ...props
+}: React.SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <select className={`${inputCls} cursor-pointer ${className}`} {...props}>
       {children}
@@ -75,7 +104,15 @@ export function Textarea({ className = '', ...props }: React.TextareaHTMLAttribu
   return <textarea className={`${inputCls} min-h-[92px] resize-y ${className}`} {...props} />;
 }
 
-export function Switch({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label?: string }) {
+export function Switch({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label?: string;
+}) {
   return (
     <label className="inline-flex cursor-pointer items-center gap-2.5">
       <button
@@ -99,7 +136,13 @@ export function Switch({ checked, onChange, label }: { checked: boolean; onChang
 
 /* ───────────── StatCard ───────────── */
 
-export function StatCard({ title, value, hint, icon, tone = 'brand' }: {
+export function StatCard({
+  title,
+  value,
+  hint,
+  icon,
+  tone = 'brand',
+}: {
   title: string;
   value: React.ReactNode;
   hint?: React.ReactNode;
@@ -114,15 +157,21 @@ export function StatCard({ title, value, hint, icon, tone = 'brand' }: {
   };
   return (
     <div className="group relative overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_1px_3px_rgba(58,45,125,0.04),0_4px_12px_rgba(58,45,125,0.06)] transition-all duration-200 hover:shadow-[0_8px_24px_rgba(58,45,125,0.10)]">
-      <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-l ${tones[tone].replace('text-', 'from-').split(' ')[0]} opacity-60`} />
+      <div
+        className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-l ${tones[tone].replace('text-', 'from-').split(' ')[0]} opacity-60`}
+      />
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-medium text-[var(--color-foreground-muted)]">{title}</p>
-          <p className="mt-2 text-[26px] font-bold leading-none tracking-tight text-[var(--color-foreground)]">{value}</p>
+          <p className="mt-2 text-[26px] font-bold leading-none tracking-tight text-[var(--color-foreground)]">
+            {value}
+          </p>
           {hint && <p className="mt-2 text-xs text-[var(--color-foreground-muted)]">{hint}</p>}
         </div>
         {icon && (
-          <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br ${tones[tone]}`}>
+          <div
+            className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br ${tones[tone]}`}
+          >
             {icon}
           </div>
         )}
@@ -133,7 +182,11 @@ export function StatCard({ title, value, hint, icon, tone = 'brand' }: {
 
 /* ───────────── Tabs ───────────── */
 
-export function Tabs({ tabs, active, onChange }: {
+export function Tabs({
+  tabs,
+  active,
+  onChange,
+}: {
   tabs: { id: string; label: string; count?: number }[];
   active: string;
   onChange: (id: string) => void;
@@ -155,7 +208,9 @@ export function Tabs({ tabs, active, onChange }: {
           )}
           <span className="relative z-10">{t.label}</span>
           {t.count !== undefined && (
-            <span className={`relative z-10 rounded-full px-1.5 text-[10px] tabular-nums ${active === t.id ? 'bg-[var(--color-brand-100)] text-[var(--color-brand-800)]' : 'bg-[var(--color-border)] text-[var(--color-foreground-muted)]'}`}>
+            <span
+              className={`relative z-10 rounded-full px-1.5 text-[10px] tabular-nums ${active === t.id ? 'bg-[var(--color-brand-100)] text-[var(--color-brand-800)]' : 'bg-[var(--color-border)] text-[var(--color-foreground-muted)]'}`}
+            >
               {t.count}
             </span>
           )}
@@ -201,12 +256,26 @@ export interface DataTableProps<T> {
 }
 
 export function DataTable<T>({
-  columns, rows, rowKey, onRowClick, sort, onSortChange,
-  page = 1, pageSize = 20, total, onPageChange,
-  search, onSearchChange, searchPlaceholder = 'جستجو…',
-  emptyTitle = 'چیزی برای نمایش نیست', emptyDescription = 'هنوز رکوردی ثبت نشده است.',
-  selectedKeys, onToggleSelect, onToggleSelectAll,
-  loading = false, skeletonCols = 5,
+  columns,
+  rows,
+  rowKey,
+  onRowClick,
+  sort,
+  onSortChange,
+  page = 1,
+  pageSize = 20,
+  total,
+  onPageChange,
+  search,
+  onSearchChange,
+  searchPlaceholder = 'جستجو…',
+  emptyTitle = 'چیزی برای نمایش نیست',
+  emptyDescription = 'هنوز رکوردی ثبت نشده است.',
+  selectedKeys,
+  onToggleSelect,
+  onToggleSelectAll,
+  loading = false,
+  skeletonCols = 5,
 }: DataTableProps<T>) {
   const reduce = useReducedMotion();
   const selectable = Boolean(selectedKeys && onToggleSelect);
@@ -218,7 +287,10 @@ export function DataTable<T>({
         <div className="flex flex-wrap items-center gap-3 border-b border-[var(--color-border-subtle)] px-4 py-3">
           {onSearchChange && (
             <div className="relative min-w-[220px] flex-1">
-              <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-foreground-muted)]" />
+              <Search
+                size={16}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-foreground-muted)]"
+              />
               <input
                 value={search ?? ''}
                 onChange={(e) => onSearchChange(e.target.value)}
@@ -263,7 +335,11 @@ export function DataTable<T>({
                     >
                       {c.header}
                       {sort?.key === c.key ? (
-                        sort.dir === 'asc' ? <ArrowUp size={13} /> : <ArrowDown size={13} />
+                        sort.dir === 'asc' ? (
+                          <ArrowUp size={13} />
+                        ) : (
+                          <ArrowDown size={13} />
+                        )
                       ) : (
                         <ArrowUpDown size={13} className="opacity-40" />
                       )}
@@ -279,10 +355,17 @@ export function DataTable<T>({
             {loading ? (
               Array.from({ length: 5 }).map((_, r) => (
                 <tr key={r} className="border-b border-[var(--color-border-subtle)]">
-                  {selectable && <td className="px-3 py-3"><div className="h-4 w-4 animate-pulse rounded bg-[var(--color-muted)]" /></td>}
+                  {selectable && (
+                    <td className="px-3 py-3">
+                      <div className="h-4 w-4 animate-pulse rounded bg-[var(--color-muted)]" />
+                    </td>
+                  )}
                   {Array.from({ length: skeletonCols }).map((_, c) => (
                     <td key={c} className="px-4 py-3">
-                      <div className="h-4 animate-pulse rounded bg-[var(--color-muted)]" style={{ width: `${55 + ((r + c) % 4) * 10}%` }} />
+                      <div
+                        className="h-4 animate-pulse rounded bg-[var(--color-muted)]"
+                        style={{ width: `${55 + ((r + c) % 4) * 10}%` }}
+                      />
                     </td>
                   ))}
                 </tr>
@@ -295,7 +378,9 @@ export function DataTable<T>({
                       <Inbox size={24} />
                     </div>
                     <p className="text-sm font-bold">{emptyTitle}</p>
-                    <p className="mt-1.5 max-w-xs text-xs leading-relaxed text-[var(--color-foreground-muted)]">{emptyDescription}</p>
+                    <p className="mt-1.5 max-w-xs text-xs leading-relaxed text-[var(--color-foreground-muted)]">
+                      {emptyDescription}
+                    </p>
                   </div>
                 </td>
               </tr>
@@ -323,7 +408,11 @@ export function DataTable<T>({
                       </td>
                     )}
                     {columns.map((c) => (
-                      <td key={c.key} data-label={c.header} className={`px-4 py-3 ${c.hideOnMobile ? 'hidden md:table-cell' : ''}`}>
+                      <td
+                        key={c.key}
+                        data-label={c.header}
+                        className={`px-4 py-3 ${c.hideOnMobile ? 'hidden md:table-cell' : ''}`}
+                      >
                         {c.render ? c.render(row, i) : String((row as Record<string, unknown>)[c.key] ?? '')}
                       </td>
                     ))}
@@ -338,7 +427,8 @@ export function DataTable<T>({
       {onPageChange && totalPages > 1 && (
         <div className="flex items-center justify-between border-t border-[var(--color-border-subtle)] px-4 py-3">
           <p className="text-xs text-[var(--color-foreground-muted)]">
-            صفحه <span className="font-bold tabular-nums">{page}</span> از <span className="font-bold tabular-nums">{totalPages}</span>
+            صفحه <span className="font-bold tabular-nums">{page}</span> از{' '}
+            <span className="font-bold tabular-nums">{totalPages}</span>
             {total !== undefined && <> — مجموع {total} رکورد</>}
           </p>
           <div className="flex items-center gap-1.5">

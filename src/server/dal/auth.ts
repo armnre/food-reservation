@@ -24,32 +24,34 @@ export interface AuthContext {
  * گرفتن کاربر جاری (کش‌شده در یک درخواست).
  * هیچ‌وقت null برنمی‌گرداند — در صورت نبود نشست redirect می‌کند.
  */
-export const getCurrentUser = cache(async (opts?: { allowPasswordChangePage?: boolean }): Promise<AuthContext> => {
-  const store = await cookies();
-  const token = store.get(env.sessionCookieName)?.value;
-  if (!token) redirect('/login');
+export const getCurrentUser = cache(
+  async (opts?: { allowPasswordChangePage?: boolean }): Promise<AuthContext> => {
+    const store = await cookies();
+    const token = store.get(env.sessionCookieName)?.value;
+    if (!token) redirect('/login');
 
-  const row = await getSessionUser(token);
-  if (!row) redirect('/login');
+    const row = await getSessionUser(token);
+    if (!row) redirect('/login');
 
-  if (!row.user.isActive) {
-    redirect('/login?error=disabled');
-  }
+    if (!row.user.isActive) {
+      redirect('/login?error=disabled');
+    }
 
-  await touchSession(row.session.id);
+    await touchSession(row.session.id);
 
-  const user: AuthedUser = {
-    id: row.user.id,
-    role: row.user.role as Role,
-    username: row.user.username,
-    displayName: row.user.displayName,
-    mustChangePassword: row.user.mustChangePassword || row.user.passwordHash === null,
-    isActive: row.user.isActive,
-    sessionId: row.session.id,
-  };
+    const user: AuthedUser = {
+      id: row.user.id,
+      role: row.user.role as Role,
+      username: row.user.username,
+      displayName: row.user.displayName,
+      mustChangePassword: row.user.mustChangePassword || row.user.passwordHash === null,
+      isActive: row.user.isActive,
+      sessionId: row.session.id,
+    };
 
-  return { user, token };
-});
+    return { user, token };
+  },
+);
 
 /**
  * گارد نقش — پیش‌فرض: رد.
@@ -82,10 +84,9 @@ export async function requirePermission(permission: string): Promise<AuthContext
 }
 
 /** فقط برای API: نقش را چک می‌کند ولی redirect نمی‌کند */
-export async function apiAuth(...roles: Role[]): Promise<
-  | { ok: true; ctx: AuthContext }
-  | { ok: false; status: 401 | 403; error: string }
-> {
+export async function apiAuth(
+  ...roles: Role[]
+): Promise<{ ok: true; ctx: AuthContext } | { ok: false; status: 401 | 403; error: string }> {
   const store = await cookies();
   const token = store.get(env.sessionCookieName)?.value;
   if (!token) return { ok: false, status: 401, error: 'نشست معتبر نیست' };

@@ -8,6 +8,7 @@ import { randomUUID } from 'node:crypto';
 import { db } from '../src/db/index';
 import { users, menus, menuItems, mealSlots } from '../src/db/schema';
 import { eq, and, gte, isNull } from 'drizzle-orm';
+import { tehranDayKey } from '../src/lib/tehran-time';
 import { createReservation } from '../src/server/services/reservation';
 
 async function main() {
@@ -20,11 +21,16 @@ async function main() {
   // اولین وعدهٔ آینده که رزروش باز است
   const now = new Date();
   const rows = await db
-    .select({ itemId: menuItems.id, date: menus.date, slot: mealSlots.name, closesAt: menus.reservationClosesAt })
+    .select({
+      itemId: menuItems.id,
+      date: menus.date,
+      slot: mealSlots.name,
+      closesAt: menus.reservationClosesAt,
+    })
     .from(menuItems)
     .innerJoin(menus, eq(menus.id, menuItems.menuId))
     .innerJoin(mealSlots, eq(mealSlots.id, menus.mealSlotId))
-    .where(gte(menus.date, new Date(now.getFullYear(), now.getMonth(), now.getDate())))
+    .where(gte(menus.date, tehranDayKey(now)))
     .orderBy(menus.date)
     .limit(20);
 
@@ -42,7 +48,9 @@ async function main() {
   });
 
   if (res.ok) {
-    console.log(`✔ رزرو نمایشی ساخته شد (${target.slot} — ${new Date(target.date).toLocaleDateString('fa-IR')})`);
+    console.log(
+      `✔ رزرو نمایشی ساخته شد (${target.slot} — ${new Date(target.date).toLocaleDateString('fa-IR')})`,
+    );
   } else {
     console.log('✗ رزرو نمایشی ناموفق:', res.error);
     process.exit(1);

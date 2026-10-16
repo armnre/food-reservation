@@ -28,8 +28,12 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/hamsofre_test
       REDIS_URL: redis://127.0.0.1:6379
       TZ: Asia/Tehran
+      # کلیدهای زیر فقط fixture تست هستند (مقدار رمزگشایی‌شدهٔ آن‌ها «test-...» است)
+      # و هیچ‌گاه کلید واقعی محیط production نیستند. کلیدهای واقعی فقط از
+      # GitHub Secrets تزریق می‌شوند و هرگز در ریپو commit نمی‌شوند.
       DATA_ENCRYPTION_KEY: dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcyEhIQ==
       DATA_HASH_KEY: dGVzdC1oYXNoLWtleS0zMi1ieXRlcy0zMmJ5dGVzIQ==
+      QR_SIGNING_KEY: dGVzdC1xci1zaWduaW5nLWtleS0zMi1ieXRlc3M=
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -37,6 +41,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # فاز ۱-۳: بررسی قالب‌بندی — اگر fomat:check در package.json نبود، مستقیم prettier
+      - name: بررسی قالب‌بندی (Prettier)
+        run: npm run format:check --if-present || npx prettier --check .
       - run: npm run lint
       - run: npx next typegen
       - run: npm exec tsc -- --noEmit --pretty false

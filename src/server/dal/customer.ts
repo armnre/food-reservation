@@ -8,7 +8,7 @@ import { getUserCustomerGroup, getMyReservations, qrDataUrl } from '@/server/ser
 import { getOrCreateWallet, getWalletBalance } from '@/server/services/wallet';
 import { getWalletLedger, getMyPayments } from '@/server/services/payment';
 import { GROUP_LABELS, type CustomerGroup } from '@/server/services/menu';
-import { toJalaliDateTime, toJalali } from '@/lib/jalali';
+import { toJalaliDateTime, toJalali, menuDayToJalali } from '@/lib/jalali';
 
 /** دسترسی به جداول برای دانشجو و کارمند */
 export async function requireCustomer() {
@@ -29,7 +29,9 @@ export async function getCustomerWeekMenu() {
 
   // موجودی کیف پول + رزروهای کاربر
   const balance = await getWalletBalance(ctx.user.id);
-  const myReservations = await db.select().from(reservations)
+  const myReservations = await db
+    .select()
+    .from(reservations)
     .where(and(eq(reservations.userId, ctx.user.id), isNull(reservations.deletedAt)));
   const myReservedItemIds = new Set(
     myReservations.filter((r) => r.status === 'CONFIRMED').map((r) => r.menuItemId),
@@ -37,9 +39,7 @@ export async function getCustomerWeekMenu() {
 
   // window per menu
   const menuIds = data.cells.map((c) => c.menuId).filter((x): x is string => Boolean(x));
-  const menuRows = menuIds.length > 0
-    ? await db.select().from(menus).where(inArray(menus.id, menuIds))
-    : [];
+  const menuRows = menuIds.length > 0 ? await db.select().from(menus).where(inArray(menus.id, menuIds)) : [];
   const menuById = new Map(menuRows.map((m) => [m.id, m]));
 
   return {
@@ -136,21 +136,18 @@ export async function getReservationReport(weeks = 4) {
   start.setDate(start.getDate() - weeks * 7);
 
   // رزروها در بازه
-  const allReservations = await db.select().from(reservations)
+  const allReservations = await db
+    .select()
+    .from(reservations)
     .where(and(gte(reservations.createdAt, start), isNull(reservations.deletedAt)));
 
   const itemIds = [...new Set(allReservations.map((r) => r.menuItemId))];
-  const items = itemIds.length > 0
-    ? await db.select().from(menuItems).where(inArray(menuItems.id, itemIds))
-    : [];
+  const items =
+    itemIds.length > 0 ? await db.select().from(menuItems).where(inArray(menuItems.id, itemIds)) : [];
   const menuIds = [...new Set(items.map((i) => i.menuId))];
-  const menuRows = menuIds.length > 0
-    ? await db.select().from(menus).where(inArray(menus.id, menuIds))
-    : [];
+  const menuRows = menuIds.length > 0 ? await db.select().from(menus).where(inArray(menus.id, menuIds)) : [];
   const foodIds = [...new Set(items.map((i) => i.foodId))];
-  const foodRows = foodIds.length > 0
-    ? await db.select().from(foods).where(inArray(foods.id, foodIds))
-    : [];
+  const foodRows = foodIds.length > 0 ? await db.select().from(foods).where(inArray(foods.id, foodIds)) : [];
 
   const itemById = new Map(items.map((i) => [i.id, i]));
   const menuById = new Map(menuRows.map((m) => [m.id, m]));
@@ -165,7 +162,7 @@ export async function getReservationReport(weeks = 4) {
     const item = itemById.get(r.menuItemId);
     const menu = item ? menuById.get(item.menuId) : undefined;
     const food = item ? foodById.get(item.foodId) : undefined;
-    const dayKey = menu ? toJalali(menu.date) : toJalali(r.createdAt);
+    const dayKey = menu ? menuDayToJalali(menu.date) : toJalali(r.createdAt);
 
     const dayEntry = byDay.get(dayKey) ?? { date: dayKey, count: 0, revenue: 0 };
     dayEntry.count++;
@@ -193,9 +190,7 @@ export async function getReservationReport(weeks = 4) {
     .filter((r) => r.status === 'CONFIRMED' || r.status === 'USED')
     .reduce((a, r) => a + r.priceSnapshotRials, 0);
 
-  const topFoods = [...byFood.values()]
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 8);
+  const topFoods = [...byFood.values()].sort((a, b) => b.count - a.count).slice(0, 8);
 
   return {
     summary: { total, confirmed, used, cancelled, revenueRials: revenue },

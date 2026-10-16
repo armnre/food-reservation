@@ -1,7 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import {
-  encryptSecret, decryptSecret, blindIndex, safeEqual, maskNationalCode,
-  generateToken, hashToken,
+  encryptSecret,
+  decryptSecret,
+  blindIndex,
+  safeEqual,
+  maskNationalCode,
+  generateToken,
+  hashToken,
 } from '../lib/crypto';
 
 describe('رمزنگاری AES-256-GCM', () => {

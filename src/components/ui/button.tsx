@@ -25,8 +25,7 @@ const VARIANTS: Record<Variant, string> = {
     'bg-transparent text-[var(--color-brand-700)] border border-[var(--color-brand-300)] hover:bg-[var(--color-brand-50)] dark:text-[var(--color-brand-300)] dark:hover:bg-[var(--color-brand-950)]/40',
   ghost:
     'bg-transparent text-[var(--color-foreground-muted)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]',
-  danger:
-    'bg-rose-600 text-white hover:bg-rose-700 shadow-[0_4px_14px_rgba(225,29,72,0.28)]',
+  danger: 'bg-rose-600 text-white hover:bg-rose-700 shadow-[0_4px_14px_rgba(225,29,72,0.28)]',
 };
 
 const SIZES: Record<Size, string> = {

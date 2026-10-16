@@ -74,7 +74,9 @@ export default async function ViceDashboardPage() {
             <h2 className="text-sm font-bold">توزیع دانشجویان بر اساس وضعیت</h2>
             <Badge variant="muted">زنده</Badge>
           </div>
-          <p className="mb-3 text-xs text-[var(--color-foreground-muted)]">بر اساس آخرین وضعیت ثبت‌شده در پرونده</p>
+          <p className="mb-3 text-xs text-[var(--color-foreground-muted)]">
+            بر اساس آخرین وضعیت ثبت‌شده در پرونده
+          </p>
           <DistributionPie data={stats.byStatus} />
         </section>
 
@@ -152,7 +154,10 @@ export default async function ViceDashboardPage() {
 
       <div className="mt-6 flex flex-wrap gap-2">
         {stats.byStatus.map((s) => (
-          <span key={s.name} className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-[11px]">
+          <span
+            key={s.name}
+            className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-[11px]"
+          >
             {s.name}: <strong>{toPersianDigits(s.value)}</strong>
           </span>
         ))}

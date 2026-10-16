@@ -3,15 +3,36 @@
 import React from 'react';
 import { Button, Spinner } from '@/components/ui/button';
 import {
-  Badge, StatCard, Field, TextInput, Select, Textarea, Switch, Tabs, DataTable, type Column,
+  Badge,
+  StatCard,
+  Field,
+  TextInput,
+  Select,
+  Textarea,
+  Switch,
+  Tabs,
+  DataTable,
+  type Column,
 } from '@/components/ui/data';
 import {
-  Dialog, Drawer, ConfirmDialog, Skeleton, TableSkeleton, EmptyState, ErrorState, Progress,
+  Dialog,
+  Drawer,
+  ConfirmDialog,
+  Skeleton,
+  TableSkeleton,
+  EmptyState,
+  ErrorState,
+  Progress,
 } from '@/components/ui/feedback';
 import { Users, Wallet, CalendarCheck, Activity } from 'lucide-react';
 import { DevControls } from '@/components/dev/dev-controls';
 
-interface Demo { id: string; name: string; role: string; status: string }
+interface Demo {
+  id: string;
+  name: string;
+  role: string;
+  status: string;
+}
 
 const DEMO_ROWS: Demo[] = [
   { id: '1', name: 'علی رضایی', role: 'دانشجو', status: 'فعال' },
@@ -39,7 +60,8 @@ export default function DevUIPage() {
         </p>
         <h1 className="text-3xl font-bold tracking-tight">سیستم طراحی</h1>
         <p className="mt-2.5 max-w-2xl text-sm leading-loose text-[var(--color-foreground-muted)]">
-          همه کامپوننت‌های رابط کاربری در حالت روشن و تیره، با راست‌چین، فونت وزیرمتن و توکن‌های رنگی استخراج‌شده از لوگوی دانشگاه.
+          همه کامپوننت‌های رابط کاربری در حالت روشن و تیره، با راست‌چین، فونت وزیرمتن و توکن‌های رنگی
+          استخراج‌شده از لوگوی دانشگاه.
         </p>
         <DevControls />
       </div>
@@ -76,7 +98,9 @@ export default function DevUIPage() {
             {[50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950].map((s) => (
               <div key={s} className="flex-1 min-w-[64px]">
                 <div className="h-12 rounded-lg" style={{ background: `var(--color-accent-${s})` }} />
-                <p className="mt-1 text-center text-[10px] text-[var(--color-foreground-muted)]">accent-{s}</p>
+                <p className="mt-1 text-center text-[10px] text-[var(--color-foreground-muted)]">
+                  accent-{s}
+                </p>
               </div>
             ))}
           </div>
@@ -99,10 +123,34 @@ export default function DevUIPage() {
       {/* کارت‌های آمار */}
       <Section title="کارت آماری" hint="چهار تن رنگی">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard title="دانشجویان فعال" value="۱٬۲۴۰" hint="+۱۲٪ نسبت به ماه قبل" icon={<Users size={20} />} tone="brand" />
-          <StatCard title="موجودی کل" value="۲۴٬۵۰۰٬۰۰۰" hint="ریال" icon={<Wallet size={20} />} tone="accent" />
-          <StatCard title="رزروهای امروز" value="۳۸۲" hint="تا این لحظه" icon={<CalendarCheck size={20} />} tone="success" />
-          <StatCard title="خطاهای سیستم" value="۰" hint="۲۴ ساعت گذشته" icon={<Activity size={20} />} tone="warning" />
+          <StatCard
+            title="دانشجویان فعال"
+            value="۱٬۲۴۰"
+            hint="+۱۲٪ نسبت به ماه قبل"
+            icon={<Users size={20} />}
+            tone="brand"
+          />
+          <StatCard
+            title="موجودی کل"
+            value="۲۴٬۵۰۰٬۰۰۰"
+            hint="ریال"
+            icon={<Wallet size={20} />}
+            tone="accent"
+          />
+          <StatCard
+            title="رزروهای امروز"
+            value="۳۸۲"
+            hint="تا این لحظه"
+            icon={<CalendarCheck size={20} />}
+            tone="success"
+          />
+          <StatCard
+            title="خطاهای سیستم"
+            value="۰"
+            hint="۲۴ ساعت گذشته"
+            icon={<Activity size={20} />}
+            tone="warning"
+          />
         </div>
       </Section>
 
@@ -190,7 +238,10 @@ export default function DevUIPage() {
             </div>
           </div>
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
-            <EmptyState title="داده‌ای یافت نشد" description="با فیلترهای دیگری جستجو کنید یا رکورد جدیدی بسازید." />
+            <EmptyState
+              title="داده‌ای یافت نشد"
+              description="با فیلترهای دیگری جستجو کنید یا رکورد جدیدی بسازید."
+            />
           </div>
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
             <ErrorState onRetry={() => {}} />
@@ -204,7 +255,11 @@ export default function DevUIPage() {
           <DemoModals />
           <div className="mt-5 rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-muted)]/40 p-4">
             <p className="text-[11px] leading-loose text-[var(--color-foreground-muted)]">
-              همه مودال‌ها با انیمیشن ۲۰۰ میلی‌ثانیه‌ای باز می‌شوند و به <code className="rounded bg-[var(--color-surface)] px-1.5 py-0.5 text-[10px]">prefers-reduced-motion</code> احترام می‌گذارند.
+              همه مودال‌ها با انیمیشن ۲۰۰ میلی‌ثانیه‌ای باز می‌شوند و به{' '}
+              <code className="rounded bg-[var(--color-surface)] px-1.5 py-0.5 text-[10px]">
+                prefers-reduced-motion
+              </code>{' '}
+              احترام می‌گذارند.
             </p>
           </div>
         </div>

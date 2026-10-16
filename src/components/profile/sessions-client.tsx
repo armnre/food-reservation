@@ -44,21 +44,31 @@ export function SessionsClient({ items }: { items: SessionItem[] }) {
                 : 'border-[var(--color-border)] hover:bg-[var(--color-muted)]/40'
             }`}
           >
-            <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
-              s.current ? 'bg-[var(--color-brand-100)] text-[var(--color-brand-800)]' : 'bg-[var(--color-muted)] text-[var(--color-foreground-muted)]'
-            }`}>
+            <div
+              className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
+                s.current
+                  ? 'bg-[var(--color-brand-100)] text-[var(--color-brand-800)]'
+                  : 'bg-[var(--color-muted)] text-[var(--color-foreground-muted)]'
+              }`}
+            >
               {isMobile ? <Smartphone size={17} /> : <Monitor size={17} />}
             </div>
 
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <p className="truncate text-xs font-semibold">{s.device || 'دستگاه ناشناس'}</p>
-                {s.current && <Badge variant="success"><ShieldCheck size={11} /> نشست فعلی</Badge>}
+                {s.current && (
+                  <Badge variant="success">
+                    <ShieldCheck size={11} /> نشست فعلی
+                  </Badge>
+                )}
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-3 text-[10px] text-[var(--color-foreground-muted)]">
                 <span className="flex items-center gap-1">
                   <Globe size={10} />
-                  <span className="font-mono" dir="ltr">{s.ip ?? '—'}</span>
+                  <span className="font-mono" dir="ltr">
+                    {s.ip ?? '—'}
+                  </span>
                 </span>
                 <span>آخرین فعالیت: {s.lastSeenAt}</span>
                 <span>ایجاد: {s.createdAt}</span>

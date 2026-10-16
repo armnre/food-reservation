@@ -23,10 +23,16 @@ export default async function AllUsersPage({
     <div>
       <PageHeader
         title="همه کاربران"
-        actions={<CreateManager/>}
+        actions={<CreateManager />}
         description={`مدیریت ${toPersianDigits(data.total)} حساب در سامانه`}
       />
-      <UsersClient items={data.items} total={data.total} page={data.page} pageSize={data.pageSize} initialQuery={{ q, role }} />
+      <UsersClient
+        items={data.items}
+        total={data.total}
+        page={data.page}
+        pageSize={data.pageSize}
+        initialQuery={{ q, role }}
+      />
     </div>
   );
 }

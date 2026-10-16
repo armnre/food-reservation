@@ -34,11 +34,15 @@ export interface LedgerLeg {
 export async function getOrCreateWallet(userId: string) {
   const existing = await db.select().from(wallets).where(eq(wallets.userId, userId)).limit(1);
   if (existing[0]) return existing[0];
-  const [row] = await db.insert(wallets).values({
-    userId,
-    ownerType: 'USER',
-    balanceRials: 0,
-  }).onConflictDoNothing().returning();
+  const [row] = await db
+    .insert(wallets)
+    .values({
+      userId,
+      ownerType: 'USER',
+      balanceRials: 0,
+    })
+    .onConflictDoNothing()
+    .returning();
   if (row) return row;
   const again = await db.select().from(wallets).where(eq(wallets.userId, userId)).limit(1);
   return again[0];
@@ -47,11 +51,15 @@ export async function getOrCreateWallet(userId: string) {
 export async function getOrCreateWalletInTx(tx: Tx, userId: string) {
   const existing = await tx.select().from(wallets).where(eq(wallets.userId, userId)).limit(1);
   if (existing[0]) return existing[0];
-  const [row] = await tx.insert(wallets).values({
-    userId,
-    ownerType: 'USER',
-    balanceRials: 0,
-  }).onConflictDoNothing().returning();
+  const [row] = await tx
+    .insert(wallets)
+    .values({
+      userId,
+      ownerType: 'USER',
+      balanceRials: 0,
+    })
+    .onConflictDoNothing()
+    .returning();
   if (row) return row;
   const again = await tx.select().from(wallets).where(eq(wallets.userId, userId)).limit(1);
   return again[0];
@@ -59,39 +67,55 @@ export async function getOrCreateWalletInTx(tx: Tx, userId: string) {
 
 export async function getSystemWallet(ownerType: SystemWalletType) {
   const key = SYSTEM_WALLET_KEYS[ownerType];
-  const existing = await db.select().from(wallets).where(
-    and(eq(wallets.ownerType, ownerType), eq(wallets.ownerKey, key)),
-  ).limit(1);
+  const existing = await db
+    .select()
+    .from(wallets)
+    .where(and(eq(wallets.ownerType, ownerType), eq(wallets.ownerKey, key)))
+    .limit(1);
   if (existing[0]) return existing[0];
-  const [row] = await db.insert(wallets).values({
-    ownerType,
-    ownerKey: key,
-    balanceRials: 0,
-    userId: null,
-  }).onConflictDoNothing().returning();
+  const [row] = await db
+    .insert(wallets)
+    .values({
+      ownerType,
+      ownerKey: key,
+      balanceRials: 0,
+      userId: null,
+    })
+    .onConflictDoNothing()
+    .returning();
   if (row) return row;
-  const again = await db.select().from(wallets).where(
-    and(eq(wallets.ownerType, ownerType), eq(wallets.ownerKey, key)),
-  ).limit(1);
+  const again = await db
+    .select()
+    .from(wallets)
+    .where(and(eq(wallets.ownerType, ownerType), eq(wallets.ownerKey, key)))
+    .limit(1);
   return again[0];
 }
 
 export async function getSystemWalletInTx(tx: Tx, ownerType: SystemWalletType) {
   const key = SYSTEM_WALLET_KEYS[ownerType];
-  const existing = await tx.select().from(wallets).where(
-    and(eq(wallets.ownerType, ownerType), eq(wallets.ownerKey, key)),
-  ).limit(1);
+  const existing = await tx
+    .select()
+    .from(wallets)
+    .where(and(eq(wallets.ownerType, ownerType), eq(wallets.ownerKey, key)))
+    .limit(1);
   if (existing[0]) return existing[0];
-  const [row] = await tx.insert(wallets).values({
-    ownerType,
-    ownerKey: key,
-    balanceRials: 0,
-    userId: null,
-  }).onConflictDoNothing().returning();
+  const [row] = await tx
+    .insert(wallets)
+    .values({
+      ownerType,
+      ownerKey: key,
+      balanceRials: 0,
+      userId: null,
+    })
+    .onConflictDoNothing()
+    .returning();
   if (row) return row;
-  const again = await tx.select().from(wallets).where(
-    and(eq(wallets.ownerType, ownerType), eq(wallets.ownerKey, key)),
-  ).limit(1);
+  const again = await tx
+    .select()
+    .from(wallets)
+    .where(and(eq(wallets.ownerType, ownerType), eq(wallets.ownerKey, key)))
+    .limit(1);
   return again[0];
 }
 
@@ -134,16 +158,23 @@ export async function recordTransactionInTx(
   }
 
   // درج تراکنش — idempotent
-  const [txn] = await tx.insert(ledgerTransactions).values({
-    idempotencyKey: input.idempotencyKey,
-    description: input.description ?? null,
-    referenceId: input.referenceId ?? null,
-    createdBy: input.createdBy ?? null,
-  }).onConflictDoNothing().returning();
+  const [txn] = await tx
+    .insert(ledgerTransactions)
+    .values({
+      idempotencyKey: input.idempotencyKey,
+      description: input.description ?? null,
+      referenceId: input.referenceId ?? null,
+      createdBy: input.createdBy ?? null,
+    })
+    .onConflictDoNothing()
+    .returning();
   if (!txn) {
     // قبلاً ثبت شده — idempotent
-    const [existing] = await tx.select().from(ledgerTransactions)
-      .where(eq(ledgerTransactions.idempotencyKey, input.idempotencyKey)).limit(1);
+    const [existing] = await tx
+      .select()
+      .from(ledgerTransactions)
+      .where(eq(ledgerTransactions.idempotencyKey, input.idempotencyKey))
+      .limit(1);
     return { transactionId: existing.id };
   }
 
@@ -151,11 +182,15 @@ export async function recordTransactionInTx(
   const walletIds = [...new Set(input.legs.map((l) => l.walletId))].sort();
   const walletInfo = new Map<string, { balance: number; ownerType: string }>();
   for (const wid of walletIds) {
-    const locked = await tx.select({
-      id: wallets.id,
-      balance: wallets.balanceRials,
-      ownerType: wallets.ownerType,
-    }).from(wallets).where(eq(wallets.id, wid)).for('update');
+    const locked = await tx
+      .select({
+        id: wallets.id,
+        balance: wallets.balanceRials,
+        ownerType: wallets.ownerType,
+      })
+      .from(wallets)
+      .where(eq(wallets.id, wid))
+      .for('update');
     if (!locked[0]) throw new BizError('کیف پول یافت نشد');
     walletInfo.set(wid, { balance: locked[0].balance, ownerType: locked[0].ownerType });
   }
@@ -168,7 +203,8 @@ export async function recordTransactionInTx(
     if (info.ownerType === 'USER' && after < 0) {
       throw new BizError('موجودی کیف پول کافی نیست');
     }
-    await tx.update(wallets)
+    await tx
+      .update(wallets)
       .set({ balanceRials: sql`${wallets.balanceRials} + ${leg.amountRials}`, updatedAt: new Date() })
       .where(eq(wallets.id, leg.walletId));
     walletInfo.set(leg.walletId, { balance: after, ownerType: info.ownerType });

@@ -5,8 +5,16 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useNow } from '@/components/shared/use-now';
 import {
-  CheckCircle2, XCircle, Clock, Ban, QrCode, Download, Wallet,
-  CalendarCheck, ArrowRight, Hourglass,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Ban,
+  QrCode,
+  Download,
+  Wallet,
+  CalendarCheck,
+  ArrowRight,
+  Hourglass,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/data';
 import { Button } from '@/components/ui/button';
@@ -35,7 +43,15 @@ export interface MyReservation {
   qrDataUrl: string | null;
 }
 
-const STATUS_META: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'muted'; icon: React.ReactNode; tone: string }> = {
+const STATUS_META: Record<
+  string,
+  {
+    label: string;
+    variant: 'success' | 'warning' | 'danger' | 'info' | 'muted';
+    icon: React.ReactNode;
+    tone: string;
+  }
+> = {
   CONFIRMED: { label: 'رزرو فعال', variant: 'success', icon: <CheckCircle2 size={12} />, tone: 'emerald' },
   USED: { label: 'تحویل‌شده', variant: 'info', icon: <CheckCircle2 size={12} />, tone: 'sky' },
   CANCELLED: { label: 'لغو شده', variant: 'danger', icon: <XCircle size={12} />, tone: 'rose' },
@@ -44,7 +60,9 @@ const STATUS_META: Record<string, { label: string; variant: 'success' | 'warning
 };
 
 export function MyReservationsStudent({
-  items, walletBalanceRials, walletHref,
+  items,
+  walletBalanceRials,
+  walletHref,
 }: {
   items: MyReservation[];
   walletBalanceRials: number;
@@ -102,7 +120,10 @@ export function MyReservationsStudent({
             <p className="text-lg font-bold tabular-nums">{formatToman(walletBalanceRials)}</p>
           </div>
         </div>
-        <ArrowRight size={14} className="text-[var(--color-foreground-muted)] transition-transform group-hover:-translate-x-1" />
+        <ArrowRight
+          size={14}
+          className="text-[var(--color-foreground-muted)] transition-transform group-hover:-translate-x-1"
+        />
       </button>
 
       {/* فعال */}
@@ -121,7 +142,9 @@ export function MyReservationsStudent({
               title="هنوز رزرو فعالی ندارید"
               description="از صفحهٔ «منوی هفته» غذای مورد علاقه‌تان را رزرو کنید."
               action={
-                <Button onClick={() => router.push(walletHref.includes('/staff') ? '/staff/menu' : '/student/menu')}>
+                <Button
+                  onClick={() => router.push(walletHref.includes('/staff') ? '/staff/menu' : '/student/menu')}
+                >
                   مشاهدهٔ منوی هفته
                 </Button>
               }
@@ -143,7 +166,13 @@ export function MyReservationsStudent({
                   <div className="flex gap-3.5 p-4">
                     <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-emerald-100 bg-[var(--color-muted)]">
                       {item.foodThumb ? (
-                        <Image src={uploadUrl(item.foodThumb) ?? ''} alt={item.foodName} fill className="object-cover" sizes="64px" />
+                        <Image
+                          src={uploadUrl(item.foodThumb) ?? ''}
+                          alt={item.foodName}
+                          fill
+                          className="object-cover"
+                          sizes="64px"
+                        />
                       ) : (
                         <div className="grid h-full w-full place-items-center text-2xl">🍽</div>
                       )}
@@ -163,18 +192,30 @@ export function MyReservationsStudent({
                           <p className="text-base font-bold text-[var(--color-brand-800)] tabular-nums">
                             {formatToman(item.priceRials)}
                           </p>
-                          <p className="mt-0.5 text-[9px] text-[var(--color-foreground-muted)]">{item.reservedAt}</p>
+                          <p className="mt-0.5 text-[9px] text-[var(--color-foreground-muted)]">
+                            {item.reservedAt}
+                          </p>
                         </div>
                       </div>
                     </div>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2 border-t border-emerald-100 bg-emerald-50/40 px-4 py-3">
-                    <Button size="sm" variant="primary" icon={<QrCode size={14} />} onClick={() => setQrItem(item)}>
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      icon={<QrCode size={14} />}
+                      onClick={() => setQrItem(item)}
+                    >
                       نمایش QR بلیط
                     </Button>
                     {cancellable ? (
-                      <Button size="sm" variant="ghost" icon={<Ban size={14} />} onClick={() => setConfirmCancel(item)}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        icon={<Ban size={14} />}
+                        onClick={() => setConfirmCancel(item)}
+                      >
                         لغو رزرو
                       </Button>
                     ) : (
@@ -196,13 +237,18 @@ export function MyReservationsStudent({
           <h2 className="mb-3 text-sm font-bold text-[var(--color-foreground-muted)]">تحویل‌شده‌ها</h2>
           <div className="space-y-2">
             {used.map((item) => (
-              <div key={item.id} className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2.5">
+              <div
+                key={item.id}
+                className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2.5"
+              >
                 <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-sky-100 text-sky-600">
                   <CheckCircle2 size={14} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-semibold">{item.foodName}</p>
-                  <p className="text-[10px] text-[var(--color-foreground-muted)]">{item.mealSlotName} — {item.menuDate}</p>
+                  <p className="text-[10px] text-[var(--color-foreground-muted)]">
+                    {item.mealSlotName} — {item.menuDate}
+                  </p>
                 </div>
                 <Badge variant="info">تحویل‌شده</Badge>
               </div>
@@ -217,13 +263,18 @@ export function MyReservationsStudent({
           <h2 className="mb-3 text-sm font-bold text-[var(--color-foreground-muted)]">تاریخچه</h2>
           <div className="space-y-2">
             {past.map((item) => (
-              <div key={item.id} className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2.5 opacity-70">
+              <div
+                key={item.id}
+                className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2.5 opacity-70"
+              >
                 <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--color-muted)] text-[var(--color-foreground-muted)]">
                   <XCircle size={14} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-semibold">{item.foodName}</p>
-                  <p className="text-[10px] text-[var(--color-foreground-muted)]">{item.mealSlotName} — {item.menuDate}</p>
+                  <p className="text-[10px] text-[var(--color-foreground-muted)]">
+                    {item.mealSlotName} — {item.menuDate}
+                  </p>
                 </div>
                 <Badge variant="muted">{STATUS_META[item.status]?.label ?? item.status}</Badge>
               </div>
@@ -241,7 +292,9 @@ export function MyReservationsStudent({
         footer={
           qrItem?.qrDataUrl ? (
             <a href={qrItem.qrDataUrl} download={`qr-${qrItem.id.slice(0, 8)}.png`}>
-              <Button variant="secondary" icon={<Download size={15} />}>دانلود تصویر QR</Button>
+              <Button variant="secondary" icon={<Download size={15} />}>
+                دانلود تصویر QR
+              </Button>
             </a>
           ) : null
         }
@@ -274,7 +327,9 @@ export function MyReservationsStudent({
             </div>
           </div>
         ) : (
-          <p className="py-6 text-center text-sm text-[var(--color-foreground-muted)]">QR برای این رزرو موجود نیست.</p>
+          <p className="py-6 text-center text-sm text-[var(--color-foreground-muted)]">
+            QR برای این رزرو موجود نیست.
+          </p>
         )}
       </Dialog>
 

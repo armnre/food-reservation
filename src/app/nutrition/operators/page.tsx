@@ -19,10 +19,7 @@ export default async function OperatorsPage({
 
   return (
     <div>
-      <PageHeader
-        title="کارکنان سلف"
-        description={`مدیریت ${toPersianDigits(data.total)} حساب کارمند سلف`}
-      />
+      <PageHeader title="کارکنان سلف" description={`مدیریت ${toPersianDigits(data.total)} حساب کارمند سلف`} />
       <StaffClient
         items={data.items}
         total={data.total}

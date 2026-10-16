@@ -23,10 +23,7 @@ export default async function FoodsPage({
         title="کتابخانه غذا"
         description={`${toPersianDigits(data.items.length)} غذا ثبت شده — حذف فیزیکی ممنوع است`}
       />
-      <FoodsClient
-        items={data.items}
-        initialQuery={{ q, category }}
-      />
+      <FoodsClient items={data.items} initialQuery={{ q, category }} />
     </div>
   );
 }

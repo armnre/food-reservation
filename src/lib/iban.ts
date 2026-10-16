@@ -7,7 +7,9 @@ import { toLatinDigits } from './validation';
 
 /** نرمال‌سازی: ارقام فارسی→لاتین، حذف فاصله، حروف بزرگ */
 export function normalizeIban(raw: string): string {
-  return toLatinDigits(raw).replace(/[\s_-]/g, '').toUpperCase();
+  return toLatinDigits(raw)
+    .replace(/[\s_-]/g, '')
+    .toUpperCase();
 }
 
 /** اعتبارسنجی کامل — خروجی شبه‌یکی شبا نرمال‌شده است */

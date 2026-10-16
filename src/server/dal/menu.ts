@@ -1,14 +1,22 @@
 import { requireRole } from './auth';
 import { ROLES } from '@/lib/permissions';
 import {
-  listFoods, listMealSlots, getWeekPlanner, getWeekMenuForGroup,
-  getNutritionStats, buildPublishChecklist, CATEGORY_LABELS, GROUP_LABELS,
-  STATUS_LABELS, type CustomerGroup, type MenuStatus,
+  listFoods,
+  listMealSlots,
+  getWeekPlanner,
+  getWeekMenuForGroup,
+  getNutritionStats,
+  buildPublishChecklist,
+  CATEGORY_LABELS,
+  GROUP_LABELS,
+  STATUS_LABELS,
+  type CustomerGroup,
+  type MenuStatus,
 } from '@/server/services/menu';
 import { db } from '@/db';
 import { menus, menuItems, menuItemPrices, foods, mealSlots } from '@/db/schema';
 import { eq, inArray, isNull, and, asc } from 'drizzle-orm';
-import { toJalaliDateTime, mealInstant } from '@/lib/jalali';
+import { toJalaliDateTime, mealInstant, startOfMenuDay } from '@/lib/jalali';
 
 /** مدیریت کامل: مدیر تغذیه و مدیر ارشد */
 export async function requireMenuManage() {
@@ -58,16 +66,14 @@ export async function getWeekPlannerForManage(weekStart: Date) {
 
   // checklist هر منو
   const menuIds = data.cells.filter((c) => c.menuId).map((c) => c.menuId as string);
-  const menuRows = menuIds.length > 0
-    ? await db.select().from(menus).where(inArray(menus.id, menuIds))
-    : [];
-  const itemRows = menuIds.length > 0
-    ? await db.select().from(menuItems).where(inArray(menuItems.menuId, menuIds))
-    : [];
+  const menuRows = menuIds.length > 0 ? await db.select().from(menus).where(inArray(menus.id, menuIds)) : [];
+  const itemRows =
+    menuIds.length > 0 ? await db.select().from(menuItems).where(inArray(menuItems.menuId, menuIds)) : [];
   const itemIds = itemRows.map((i) => i.id);
-  const priceRows = itemIds.length > 0
-    ? await db.select().from(menuItemPrices).where(inArray(menuItemPrices.menuItemId, itemIds))
-    : [];
+  const priceRows =
+    itemIds.length > 0
+      ? await db.select().from(menuItemPrices).where(inArray(menuItemPrices.menuItemId, itemIds))
+      : [];
   const slotRows = await db.select().from(mealSlots).where(isNull(mealSlots.deletedAt));
 
   const priceCount = new Map<string, number>();
@@ -89,8 +95,8 @@ export async function getWeekPlannerForManage(weekStart: Date) {
           status: m.status as MenuStatus,
           reservationOpensAt: m.reservationOpensAt,
           reservationClosesAt: m.reservationClosesAt,
-          date: m.date,
-          mealStart: slot ? mealInstant(m.date,slot.startTime) : m.date,
+          date: startOfMenuDay(m.date),
+          mealStart: slot ? mealInstant(m.date, slot.startTime) : startOfMenuDay(m.date),
         },
         itemsByMenu.get(m.id) ?? [],
       ),
@@ -117,8 +123,12 @@ export async function getWeekPlannerForManage(weekStart: Date) {
 
 export async function getWeekMenuForUser() {
   const ctx = await requireRole(
-    ROLES.STUDENT, ROLES.STAFF, ROLES.VICE_STUDENT,
-    ROLES.NUTRITION_MANAGER, ROLES.CAFETERIA_OPERATOR, ROLES.SUPER_ADMIN,
+    ROLES.STUDENT,
+    ROLES.STAFF,
+    ROLES.VICE_STUDENT,
+    ROLES.NUTRITION_MANAGER,
+    ROLES.CAFETERIA_OPERATOR,
+    ROLES.SUPER_ADMIN,
   );
 
   // گروه مشتری کاربر
@@ -126,14 +136,17 @@ export async function getWeekMenuForUser() {
   if (ctx.user.role === 'STAFF' || ctx.user.role === 'CAFETERIA_OPERATOR') group = 'EMPLOYEE';
   if (ctx.user.role !== 'STUDENT') {
     const { studentProfiles, staffProfiles } = await import('@/db/schema');
-    const sp = await db.select().from(studentProfiles).where(eq(studentProfiles.userId, ctx.user.id)).limit(1);
+    const sp = await db
+      .select()
+      .from(studentProfiles)
+      .where(eq(studentProfiles.userId, ctx.user.id))
+      .limit(1);
     if (sp[0]) group = sp[0].customerGroup as CustomerGroup;
     else {
       const st = await db.select().from(staffProfiles).where(eq(staffProfiles.userId, ctx.user.id)).limit(1);
       if (st[0]) {
-        group = st[0].kind === 'FACULTY' ? 'FACULTY'
-          : st[0].kind === 'CONTRACTOR' ? 'CONTRACTOR'
-          : 'EMPLOYEE';
+        group =
+          st[0].kind === 'FACULTY' ? 'FACULTY' : st[0].kind === 'CONTRACTOR' ? 'CONTRACTOR' : 'EMPLOYEE';
       }
     }
   }
@@ -166,7 +179,9 @@ export async function getNutritionDashboard() {
 
 export async function getFoodsForCombobox() {
   await requireMenuManage();
-  const rows = await db.select().from(foods)
+  const rows = await db
+    .select()
+    .from(foods)
     .where(and(isNull(foods.deletedAt), eq(foods.isActive, true)))
     .orderBy(asc(foods.name));
   return rows.map((f) => ({ id: f.id, name: f.name, category: f.category }));

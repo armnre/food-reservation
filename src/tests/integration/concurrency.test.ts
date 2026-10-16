@@ -4,7 +4,14 @@ import { db } from '@/db';
 import { reservations, menuItems, users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { createReservation, cancelReservation, markReservationUsed } from '@/server/services/reservation';
-import { createStudent, createMenuItemWithPrice, depositUserWallet, getWalletBalance, testActor, closePool } from './helpers';
+import {
+  createStudent,
+  createMenuItemWithPrice,
+  depositUserWallet,
+  getWalletBalance,
+  testActor,
+  closePool,
+} from './helpers';
 
 /**
  * فاز ۲ — تست‌های هم‌زمانی روی دیتابیس واقعی.
@@ -18,7 +25,12 @@ describe('هم‌زمانی رزرو', () => {
 
     const results = await Promise.all(
       students.map((s) =>
-        createReservation({ userId: s.userId, menuItemId: itemId, idempotencyKey: randomUUID(), actor: testActor(s.userId) }),
+        createReservation({
+          userId: s.userId,
+          menuItemId: itemId,
+          idempotencyKey: randomUUID(),
+          actor: testActor(s.userId),
+        }),
       ),
     );
 
@@ -45,8 +57,18 @@ describe('هم‌زمانی رزرو', () => {
     await depositUserWallet(userId, 500_000);
 
     const [a, b] = await Promise.all([
-      createReservation({ userId, menuItemId: itemId, idempotencyKey: randomUUID(), actor: testActor(userId) }),
-      createReservation({ userId, menuItemId: itemId, idempotencyKey: randomUUID(), actor: testActor(userId) }),
+      createReservation({
+        userId,
+        menuItemId: itemId,
+        idempotencyKey: randomUUID(),
+        actor: testActor(userId),
+      }),
+      createReservation({
+        userId,
+        menuItemId: itemId,
+        idempotencyKey: randomUUID(),
+        actor: testActor(userId),
+      }),
     ]);
 
     expect(a.ok).toBe(true);
@@ -67,8 +89,18 @@ describe('هم‌زمانی رزرو', () => {
     await depositUserWallet(s2.userId, 0); // کیف صفر — depositUserWallet با صفر هم جفت ledger می‌سازد
 
     const results = await Promise.all([
-      createReservation({ userId: s1.userId, menuItemId: itemId, idempotencyKey: randomUUID(), actor: testActor(s1.userId) }),
-      createReservation({ userId: s2.userId, menuItemId: itemId, idempotencyKey: randomUUID(), actor: testActor(s2.userId) }),
+      createReservation({
+        userId: s1.userId,
+        menuItemId: itemId,
+        idempotencyKey: randomUUID(),
+        actor: testActor(s1.userId),
+      }),
+      createReservation({
+        userId: s2.userId,
+        menuItemId: itemId,
+        idempotencyKey: randomUUID(),
+        actor: testActor(s2.userId),
+      }),
     ]);
 
     const oks = results.filter((r) => r.ok);
@@ -85,13 +117,22 @@ describe('هم‌زمانی رزرو', () => {
     const { itemId, priceRials } = await createMenuItemWithPrice({ priceRials: 40_000, dayOffset: 0 });
     await depositUserWallet(userId, 100_000);
 
-    const r = await createReservation({ userId, menuItemId: itemId, idempotencyKey: randomUUID(), actor: testActor(userId) });
+    const r = await createReservation({
+      userId,
+      menuItemId: itemId,
+      idempotencyKey: randomUUID(),
+      actor: testActor(userId),
+    });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
 
     const [cancelRes, scanRes] = await Promise.all([
       cancelReservation({ userId, reservationId: r.reservation.id, actor: testActor(userId) }),
-      markReservationUsed({ qrToken: r.reservation.qrToken, operatorId: userId, actor: testActor(userId, 'CAFETERIA_OPERATOR') }),
+      markReservationUsed({
+        qrToken: r.reservation.qrToken,
+        operatorId: userId,
+        actor: testActor(userId, 'CAFETERIA_OPERATOR'),
+      }),
     ]);
 
     // دقیقاً یکی موفق است
@@ -113,13 +154,26 @@ describe('هم‌زمانی رزرو', () => {
     const { itemId } = await createMenuItemWithPrice({ priceRials: 30_000, dayOffset: 0 });
     await depositUserWallet(userId, 100_000);
 
-    const r = await createReservation({ userId, menuItemId: itemId, idempotencyKey: randomUUID(), actor: testActor(userId) });
+    const r = await createReservation({
+      userId,
+      menuItemId: itemId,
+      idempotencyKey: randomUUID(),
+      actor: testActor(userId),
+    });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
 
     const [s1, s2] = await Promise.all([
-      markReservationUsed({ qrToken: r.reservation.qrToken, operatorId: userId, actor: testActor(userId, 'CAFETERIA_OPERATOR') }),
-      markReservationUsed({ qrToken: r.reservation.qrToken, operatorId: userId, actor: testActor(userId, 'CAFETERIA_OPERATOR') }),
+      markReservationUsed({
+        qrToken: r.reservation.qrToken,
+        operatorId: userId,
+        actor: testActor(userId, 'CAFETERIA_OPERATOR'),
+      }),
+      markReservationUsed({
+        qrToken: r.reservation.qrToken,
+        operatorId: userId,
+        actor: testActor(userId, 'CAFETERIA_OPERATOR'),
+      }),
     ]);
 
     expect([s1.ok, s2.ok].filter(Boolean).length).toBe(1);

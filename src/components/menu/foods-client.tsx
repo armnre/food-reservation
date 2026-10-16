@@ -3,9 +3,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import {
-  Plus, LayoutGrid, Table2, Pencil, Power, UploadCloud, Flame, Tag, Search,
-} from 'lucide-react';
+import { Plus, LayoutGrid, Table2, Pencil, Power, UploadCloud, Flame, Tag, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge, Field, TextInput, Select, Textarea, DataTable, type Column } from '@/components/ui/data';
 import { Dialog, ConfirmDialog, useToast, EmptyState } from '@/components/ui/feedback';
@@ -38,11 +36,16 @@ const CATEGORIES: { value: string; label: string }[] = [
 ];
 
 const EMPTY_FORM = {
-  name: '', description: '', category: 'MAIN', calories: '', tags: '',
+  name: '',
+  description: '',
+  category: 'MAIN',
+  calories: '',
+  tags: '',
 };
 
 export function FoodsClient({
-  items, initialQuery,
+  items,
+  initialQuery,
 }: {
   items: FoodItem[];
   initialQuery: { q: string; category: string };
@@ -74,9 +77,17 @@ export function FoodsClient({
         <div className="flex items-center gap-2.5">
           <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)]">
             {r.thumbPath ? (
-              <Image src={uploadUrl(r.thumbPath) ?? ''} alt={r.name} fill className="object-cover" sizes="36px" />
+              <Image
+                src={uploadUrl(r.thumbPath) ?? ''}
+                alt={r.name}
+                fill
+                className="object-cover"
+                sizes="36px"
+              />
             ) : (
-              <span className="grid h-full w-full place-items-center text-[10px] text-[var(--color-foreground-muted)]">🍽</span>
+              <span className="grid h-full w-full place-items-center text-[10px] text-[var(--color-foreground-muted)]">
+                🍽
+              </span>
             )}
           </div>
           <div className="min-w-0">
@@ -92,20 +103,34 @@ export function FoodsClient({
       hideOnMobile: true,
       render: (r) => (
         <div className="flex flex-wrap gap-1">
-          {r.tags.length === 0 ? <span className="text-[11px] text-[var(--color-foreground-muted)]">—</span> :
-            r.tags.map((t) => <Badge key={t} variant="muted">{t}</Badge>)}
+          {r.tags.length === 0 ? (
+            <span className="text-[11px] text-[var(--color-foreground-muted)]">—</span>
+          ) : (
+            r.tags.map((t) => (
+              <Badge key={t} variant="muted">
+                {t}
+              </Badge>
+            ))
+          )}
         </div>
       ),
     },
     {
       key: 'calories',
       header: 'کالری',
-      render: (r) => (r.calories ? <span className="text-xs tabular-nums">{toPersianDigits(r.calories)}</span> : <span className="text-[11px] text-[var(--color-foreground-muted)]">—</span>),
+      render: (r) =>
+        r.calories ? (
+          <span className="text-xs tabular-nums">{toPersianDigits(r.calories)}</span>
+        ) : (
+          <span className="text-[11px] text-[var(--color-foreground-muted)]">—</span>
+        ),
     },
     {
       key: 'isActive',
       header: 'وضعیت',
-      render: (r) => <Badge variant={r.isActive ? 'success' : 'danger'}>{r.isActive ? 'فعال' : 'غیرفعال'}</Badge>,
+      render: (r) => (
+        <Badge variant={r.isActive ? 'success' : 'danger'}>{r.isActive ? 'فعال' : 'غیرفعال'}</Badge>
+      ),
     },
     {
       key: 'actions',
@@ -113,14 +138,21 @@ export function FoodsClient({
       render: (r) => (
         <div className="flex items-center gap-1">
           <button
-            onClick={(e) => { e.stopPropagation(); setEditing(r); setFormOpen(true); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setEditing(r);
+              setFormOpen(true);
+            }}
             className="rounded-lg border border-[var(--color-border)] p-1.5 text-[var(--color-foreground-muted)] transition-colors hover:bg-[var(--color-brand-50)] hover:text-[var(--color-brand-700)]"
             aria-label="ویرایش"
           >
             <Pencil size={14} />
           </button>
           <button
-            onClick={(e) => { e.stopPropagation(); setConfirmToggle(r); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setConfirmToggle(r);
+            }}
             className="rounded-lg border border-[var(--color-border)] p-1.5 text-[var(--color-foreground-muted)] transition-colors hover:bg-amber-50 hover:text-amber-700"
             aria-label={r.isActive ? 'غیرفعال‌سازی' : 'فعال‌سازی'}
           >
@@ -136,19 +168,30 @@ export function FoodsClient({
       <div className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
         <div className="min-w-[220px] flex-1">
           <Field label="جستجو" htmlFor="fq">
-            <TextInput id="fq" value={query} onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && navigate({ q: query })} placeholder="نام غذا" />
+            <TextInput
+              id="fq"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && navigate({ q: query })}
+              placeholder="نام غذا"
+            />
           </Field>
         </div>
         <div className="w-48">
           <Field label="دسته" htmlFor="fcat">
             <Select id="fcat" value={category} onChange={(e) => navigate({ category: e.target.value })}>
               <option value="ALL">همه دسته‌ها</option>
-              {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+              {CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
             </Select>
           </Field>
         </div>
-        <Button variant="primary" icon={<Search size={16} />} onClick={() => navigate({ q: query })}>جستجو</Button>
+        <Button variant="primary" icon={<Search size={16} />} onClick={() => navigate({ q: query })}>
+          جستجو
+        </Button>
         <div className="mr-auto flex items-center gap-1 rounded-lg border border-[var(--color-border)] p-1">
           <button
             onClick={() => setView('grid')}
@@ -168,7 +211,14 @@ export function FoodsClient({
       </div>
 
       <div className="mb-5">
-        <Button variant="primary" icon={<Plus size={16} />} onClick={() => { setEditing(null); setFormOpen(true); }}>
+        <Button
+          variant="primary"
+          icon={<Plus size={16} />}
+          onClick={() => {
+            setEditing(null);
+            setFormOpen(true);
+          }}
+        >
           افزودن غذا
         </Button>
       </div>
@@ -178,7 +228,17 @@ export function FoodsClient({
           <EmptyState
             title="کتابخانه غذا خالی است"
             description="نخستین غذا را با نام، دسته، تصویر و برچسب اضافه کنید تا در برنامه هفتگی قابل استفاده باشد."
-            action={<Button onClick={() => { setEditing(null); setFormOpen(true); }} icon={<Plus size={16} />}>افزودن غذا</Button>}
+            action={
+              <Button
+                onClick={() => {
+                  setEditing(null);
+                  setFormOpen(true);
+                }}
+                icon={<Plus size={16} />}
+              >
+                افزودن غذا
+              </Button>
+            }
           />
         </div>
       ) : view === 'grid' ? (
@@ -221,18 +281,34 @@ export function FoodsClient({
                     </span>
                   ) : null}
                   {f.tags.map((t) => (
-                    <span key={t} className="inline-flex items-center gap-1 rounded-full bg-[var(--color-muted)] px-2 py-0.5 text-[10px] text-[var(--color-foreground-muted)]">
+                    <span
+                      key={t}
+                      className="inline-flex items-center gap-1 rounded-full bg-[var(--color-muted)] px-2 py-0.5 text-[10px] text-[var(--color-foreground-muted)]"
+                    >
                       <Tag size={9} /> {t}
                     </span>
                   ))}
                 </div>
 
                 <div className="mt-4 flex gap-2">
-                  <Button size="sm" variant="secondary" className="flex-1" icon={<Pencil size={13} />}
-                    onClick={() => { setEditing(f); setFormOpen(true); }}>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="flex-1"
+                    icon={<Pencil size={13} />}
+                    onClick={() => {
+                      setEditing(f);
+                      setFormOpen(true);
+                    }}
+                  >
                     ویرایش
                   </Button>
-                  <Button size="sm" variant="ghost" icon={<Power size={13} />} onClick={() => setConfirmToggle(f)}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    icon={<Power size={13} />}
+                    onClick={() => setConfirmToggle(f)}
+                  >
                     {f.isActive ? 'غیرفعال' : 'فعال'}
                   </Button>
                 </div>
@@ -245,7 +321,10 @@ export function FoodsClient({
           columns={columns}
           rows={items}
           rowKey={(r) => r.id}
-          onRowClick={(r) => { setEditing(r); setFormOpen(true); }}
+          onRowClick={(r) => {
+            setEditing(r);
+            setFormOpen(true);
+          }}
           emptyTitle="غذایی یافت نشد"
           emptyDescription="فیلترها را تغییر دهید."
         />
@@ -254,9 +333,13 @@ export function FoodsClient({
       <FoodFormDialog
         open={formOpen}
         editing={editing}
-        onClose={() => { setFormOpen(false); setEditing(null); }}
+        onClose={() => {
+          setFormOpen(false);
+          setEditing(null);
+        }}
         onSaved={() => {
-          setFormOpen(false); setEditing(null);
+          setFormOpen(false);
+          setEditing(null);
           toast.push({ kind: 'success', title: 'اطلاعات غذا ذخیره شد' });
           router.refresh();
         }}
@@ -290,7 +373,10 @@ export function FoodsClient({
 }
 
 function FoodFormDialog({
-  open, editing, onClose, onSaved,
+  open,
+  editing,
+  onClose,
+  onSaved,
 }: {
   open: boolean;
   editing: FoodItem | null;
@@ -344,11 +430,16 @@ function FoodFormDialog({
       description: values.description || null,
       category: values.category,
       calories: values.calories ? Number.parseInt(values.calories, 10) : null,
-      tags: values.tags.split(/[،,]/).map((t) => t.trim()).filter(Boolean),
+      tags: values.tags
+        .split(/[،,]/)
+        .map((t) => t.trim())
+        .filter(Boolean),
       imageBase64: image?.base64 ?? null,
       imageMime: image?.mime ?? null,
     };
-    const res = editing ? await updateFoodAction({ id: editing.id, ...payload }) : await createFoodAction(payload);
+    const res = editing
+      ? await updateFoodAction({ id: editing.id, ...payload })
+      : await createFoodAction(payload);
     setBusy(false);
 
     if (!res.ok) {
@@ -365,39 +456,61 @@ function FoodFormDialog({
       title={editing ? 'ویرایش غذا' : 'افزودن غذای جدید'}
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>انصراف</Button>
-          <Button loading={busy} onClick={submit}>{editing ? 'ذخیره تغییرات' : 'افزودن غذا'}</Button>
+          <Button variant="ghost" onClick={onClose}>
+            انصراف
+          </Button>
+          <Button loading={busy} onClick={submit}>
+            {editing ? 'ذخیره تغییرات' : 'افزودن غذا'}
+          </Button>
         </>
       }
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="نام غذا" required error={errors.name}>
-          <TextInput value={values.name} onChange={(e) => setValues((p) => ({ ...p, name: e.target.value }))} />
+          <TextInput
+            value={values.name}
+            onChange={(e) => setValues((p) => ({ ...p, name: e.target.value }))}
+          />
         </Field>
         <Field label="دسته">
-          <Select value={values.category} onChange={(e) => setValues((p) => ({ ...p, category: e.target.value }))}>
-            {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+          <Select
+            value={values.category}
+            onChange={(e) => setValues((p) => ({ ...p, category: e.target.value }))}
+          >
+            {CATEGORIES.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
+              </option>
+            ))}
           </Select>
         </Field>
         <Field label="کالری (اختیاری)" error={errors.calories}>
-          <TextInput dir="ltr" value={values.calories} className="text-right"
-            onChange={(e) => setValues((p) => ({ ...p, calories: e.target.value }))} />
+          <TextInput
+            dir="ltr"
+            value={values.calories}
+            className="text-right"
+            onChange={(e) => setValues((p) => ({ ...p, calories: e.target.value }))}
+          />
         </Field>
         <Field label="برچسب‌ها" hint="با ویرگول جدا کنید — مثلاً گیاهی، تند">
-          <TextInput value={values.tags} onChange={(e) => setValues((p) => ({ ...p, tags: e.target.value }))} />
+          <TextInput
+            value={values.tags}
+            onChange={(e) => setValues((p) => ({ ...p, tags: e.target.value }))}
+          />
         </Field>
         <div className="sm:col-span-2">
           <Field label="توضیحات">
-            <Textarea value={values.description} onChange={(e) => setValues((p) => ({ ...p, description: e.target.value }))} />
+            <Textarea
+              value={values.description}
+              onChange={(e) => setValues((p) => ({ ...p, description: e.target.value }))}
+            />
           </Field>
         </div>
       </div>
 
       <div className="mt-4">
         <p className="mb-1.5 text-[13px] font-medium">تصویر غذا</p>
-        <label
-          className="flex cursor-pointer items-center gap-4 rounded-xl border-2 border-dashed border-[var(--color-border)] p-4 transition-colors hover:border-[var(--color-brand-300)] hover:bg-[var(--color-brand-50)]/40"
-        >
+        <label className="flex cursor-pointer items-center gap-4 rounded-xl border-2 border-dashed border-[var(--color-border)] p-4 transition-colors hover:border-[var(--color-brand-300)] hover:bg-[var(--color-brand-50)]/40">
           <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)]">
             {image?.preview ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -405,18 +518,28 @@ function FoodFormDialog({
             ) : editing?.thumbPath ? (
               <Image src={uploadUrl(editing.thumbPath) ?? ''} alt="" fill className="object-cover" />
             ) : (
-              <div className="grid h-full w-full place-items-center text-[var(--color-foreground-muted)]"><UploadCloud size={22} /></div>
+              <div className="grid h-full w-full place-items-center text-[var(--color-foreground-muted)]">
+                <UploadCloud size={22} />
+              </div>
             )}
           </div>
           <div>
             <p className="text-xs font-semibold">انتخاب تصویر</p>
             <p className="mt-1 text-[11px] leading-relaxed text-[var(--color-foreground-muted)]">
               فرمت jpg، png یا webp — حداکثر ۲ مگابایت
-              <br />پس از آپلود به webp تبدیل و ذخیره می‌شود.
+              <br />
+              پس از آپلود به webp تبدیل و ذخیره می‌شود.
             </p>
           </div>
-          <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) pickImage(f); }} />
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) pickImage(f);
+            }}
+          />
         </label>
         {errors.image && <p className="mt-1.5 text-xs font-medium text-rose-600">{errors.image}</p>}
       </div>

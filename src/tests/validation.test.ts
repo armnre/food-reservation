@@ -1,9 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import {
-  toLatinDigits, toPersianDigits, normalizePersianText,
-  normalizeNationalCode, isValidNationalCode, normalizeStudentNumber,
-  normalizeMobile, parseStudentStatus, parseStaffKind,
-  validatePersonalPassword, passwordStrength, generateTemporaryPassword,
+  toLatinDigits,
+  toPersianDigits,
+  normalizePersianText,
+  normalizeNationalCode,
+  isValidNationalCode,
+  normalizeStudentNumber,
+  normalizeMobile,
+  parseStudentStatus,
+  parseStaffKind,
+  validatePersonalPassword,
+  passwordStrength,
+  generateTemporaryPassword,
 } from '../lib/validation';
 
 describe('تبدیل ارقام', () => {
@@ -99,7 +107,9 @@ describe('رمز عبور', () => {
   });
 
   it('رمز معتبر را قبول می‌کند', () => {
-    expect(validatePersonalPassword('MyP@ssw0rd!', { nationalCode: '0012345678', studentNumber: '40123456' })).toBeNull();
+    expect(
+      validatePersonalPassword('MyP@ssw0rd!', { nationalCode: '0012345678', studentNumber: '40123456' }),
+    ).toBeNull();
   });
 
   it('قدرت رمز را محاسبه می‌کند', () => {

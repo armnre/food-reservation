@@ -6,6 +6,7 @@ import 'dotenv/config';
 import { db } from '../src/db/index';
 import { menus, menuItems, menuItemPrices, mealSlots, foods } from '../src/db/schema';
 import { eq, isNull } from 'drizzle-orm';
+import { tehranDayKey } from '../src/lib/tehran-time';
 
 async function main() {
   const slots = await db.select().from(mealSlots).where(isNull(mealSlots.deletedAt));
@@ -23,16 +24,22 @@ async function main() {
     if (day.getTime() < new Date().setHours(0, 0, 0, 0)) continue;
 
     for (const slot of slots) {
-      const existing = await db.select().from(menus).where(eq(menus.date, day));
+      const existing = await db
+        .select()
+        .from(menus)
+        .where(eq(menus.date, tehranDayKey(day)));
       let menuId = existing.find((m) => m.mealSlotId === slot.id)?.id;
       if (!menuId) {
-        const [m] = await db.insert(menus).values({
-          date: day,
-          mealSlotId: slot.id,
-          status: 'PUBLISHED',
-          reservationOpensAt: new Date(day.getTime() - 2 * 86400000),
-          reservationClosesAt: new Date(day.getTime() + (slot.name === 'ناهار' ? 10 : 15) * 3600000),
-        }).returning();
+        const [m] = await db
+          .insert(menus)
+          .values({
+            date: tehranDayKey(day),
+            mealSlotId: slot.id,
+            status: 'PUBLISHED',
+            reservationOpensAt: new Date(day.getTime() - 2 * 86400000),
+            reservationClosesAt: new Date(day.getTime() + (slot.name === 'ناهار' ? 10 : 15) * 3600000),
+          })
+          .returning();
         menuId = m.id;
       } else {
         continue;
@@ -40,12 +47,15 @@ async function main() {
 
       const picks = foodRows.slice(0, 3);
       for (let i = 0; i < picks.length; i++) {
-        const [item] = await db.insert(menuItems).values({
-          menuId,
-          foodId: picks[i].id,
-          capacity: 40,
-          reservedCount: 0,
-        }).returning();
+        const [item] = await db
+          .insert(menuItems)
+          .values({
+            menuId,
+            foodId: picks[i].id,
+            capacity: 40,
+            reservedCount: 0,
+          })
+          .returning();
         await db.insert(menuItemPrices).values([
           { menuItemId: item.id, customerGroup: 'STUDENT', priceRials: 120000 + i * 40000 },
           { menuItemId: item.id, customerGroup: 'EMPLOYEE', priceRials: 250000 + i * 40000 },
@@ -57,7 +67,9 @@ async function main() {
   console.log('✔ منوی نمایشی هفته جاری ساخته شد');
 }
 
-main().then(() => process.exit(0)).catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+main()
+  .then(() => process.exit(0))
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });

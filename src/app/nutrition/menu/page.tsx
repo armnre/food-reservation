@@ -19,10 +19,7 @@ export default async function MenuPlannerPage({
   weekStart.setDate(ref.getDate() - dayOfWeek + offset * 7);
   weekStart.setHours(0, 0, 0, 0);
 
-  const [data, foods] = await Promise.all([
-    getWeekPlannerForManage(weekStart),
-    getFoodsForCombobox(),
-  ]);
+  const [data, foods] = await Promise.all([getWeekPlannerForManage(weekStart), getFoodsForCombobox()]);
 
   return (
     <div>

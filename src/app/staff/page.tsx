@@ -29,13 +29,21 @@ export default async function StaffDashboardPage() {
       <PageHeader
         title={`سلام، ${firstName} عزیز`}
         description={nowJalali()}
-        actions={<Badge variant="accent"><Sparkles size={12} /> پنل کارکنان دانشگاه</Badge>}
+        actions={
+          <Badge variant="accent">
+            <Sparkles size={12} /> پنل کارکنان دانشگاه
+          </Badge>
+        }
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
           title="منوی امروز"
-          value={<Link href="/staff/menu" className="underline decoration-dotted">مشاهده</Link>}
+          value={
+            <Link href="/staff/menu" className="underline decoration-dotted">
+              مشاهده
+            </Link>
+          }
           hint="رزرو آنلاین فعال است"
           icon={<UtensilsCrossed size={20} />}
           tone="brand"
@@ -43,14 +51,22 @@ export default async function StaffDashboardPage() {
         <StatCard
           title="موجودی کیف پول"
           value={formatToman(balance)}
-          hint={<Link href="/staff/wallet" className="underline decoration-dotted">شارژ کیف پول</Link>}
+          hint={
+            <Link href="/staff/wallet" className="underline decoration-dotted">
+              شارژ کیف پول
+            </Link>
+          }
           icon={<Wallet size={20} />}
           tone="accent"
         />
         <StatCard
           title="رزروهای فعال"
           value={toPersianDigits(activeCount)}
-          hint={<Link href="/staff/reservations" className="underline decoration-dotted">مشاهدهٔ QR</Link>}
+          hint={
+            <Link href="/staff/reservations" className="underline decoration-dotted">
+              مشاهدهٔ QR
+            </Link>
+          }
           icon={<CalendarCheck size={20} />}
           tone="success"
         />
@@ -59,7 +75,10 @@ export default async function StaffDashboardPage() {
       <div className="mt-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-sm">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-bold">رزروهای من</h2>
-          <Link href="/staff/reservations" className="flex items-center gap-1 text-xs text-[var(--color-brand-700)] hover:underline">
+          <Link
+            href="/staff/reservations"
+            className="flex items-center gap-1 text-xs text-[var(--color-brand-700)] hover:underline"
+          >
             همه <ArrowLeft size={12} />
           </Link>
         </div>
@@ -81,18 +100,26 @@ export default async function StaffDashboardPage() {
           </div>
         ) : (
           <div className="mt-4 space-y-2">
-            {myReservations.filter((r) => r.status === 'CONFIRMED').slice(0, 5).map((r) => (
-              <div key={r.id} className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50/40 px-3.5 py-2.5">
-                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-600">
-                  <UtensilsCrossed size={13} />
+            {myReservations
+              .filter((r) => r.status === 'CONFIRMED')
+              .slice(0, 5)
+              .map((r) => (
+                <div
+                  key={r.id}
+                  className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50/40 px-3.5 py-2.5"
+                >
+                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-600">
+                    <UtensilsCrossed size={13} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-semibold">{r.foodName}</p>
+                    <p className="text-[10px] text-[var(--color-foreground-muted)]">
+                      {r.mealSlotName} — {r.menuDate}
+                    </p>
+                  </div>
+                  <span className="text-[11px] font-bold">{formatToman(r.priceRials)}</span>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-semibold">{r.foodName}</p>
-                  <p className="text-[10px] text-[var(--color-foreground-muted)]">{r.mealSlotName} — {r.menuDate}</p>
-                </div>
-                <span className="text-[11px] font-bold">{formatToman(r.priceRials)}</span>
-              </div>
-            ))}
+              ))}
           </div>
         )}
       </div>

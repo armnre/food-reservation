@@ -1,8 +1,15 @@
 import React from 'react';
 import Link from 'next/link';
 import {
-  Users, UtensilsCrossed, CalendarRange, TriangleAlert, ArrowLeft, Plus,
-  CheckCircle2, FileEdit, ChefHat,
+  Users,
+  UtensilsCrossed,
+  CalendarRange,
+  TriangleAlert,
+  ArrowLeft,
+  Plus,
+  CheckCircle2,
+  FileEdit,
+  ChefHat,
 } from 'lucide-react';
 import { requireRole } from '@/server/dal/auth';
 import { ROLES } from '@/lib/permissions';
@@ -99,7 +106,11 @@ export default async function NutritionDashboardPage() {
           <p className="mt-1 text-xs text-[var(--color-foreground-muted)]">پرکاربردترین عملیات این پنل</p>
           <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             {[
-              { href: '/nutrition/menu', label: 'برنامه‌ریز منوی هفتگی', desc: 'چیدمان، قیمت‌گذاری و انتشار' },
+              {
+                href: '/nutrition/menu',
+                label: 'برنامه‌ریز منوی هفتگی',
+                desc: 'چیدمان، قیمت‌گذاری و انتشار',
+              },
               { href: '/nutrition/foods', label: 'کتابخانه غذا', desc: 'افزودن غذا، تصویر، برچسب و کالری' },
               { href: '/nutrition/slots', label: 'وعده‌های غذا', desc: 'ناهار، شام و ساعت‌های آن‌ها' },
               { href: '/nutrition/operators', label: 'کارکنان سلف', desc: 'تعریف و مدیریت اپراتورها' },
@@ -111,9 +122,14 @@ export default async function NutritionDashboardPage() {
               >
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-bold">{l.label}</p>
-                  <ArrowLeft size={14} className="text-[var(--color-brand-600)] transition-transform group-hover:-translate-x-1" />
+                  <ArrowLeft
+                    size={14}
+                    className="text-[var(--color-brand-600)] transition-transform group-hover:-translate-x-1"
+                  />
                 </div>
-                <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--color-foreground-muted)]">{l.desc}</p>
+                <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--color-foreground-muted)]">
+                  {l.desc}
+                </p>
               </Link>
             ))}
           </div>
@@ -131,7 +147,10 @@ export default async function NutritionDashboardPage() {
               'برای هر غذا حداقل یک قیمت ثبت شده باشد',
               'بازه رزرو معتبر باشد: باز شدن < بسته شدن < شروع وعده',
             ].map((t) => (
-              <li key={t} className="flex items-start gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[11px] leading-relaxed">
+              <li
+                key={t}
+                className="flex items-start gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[11px] leading-relaxed"
+              >
                 <CheckCircle2 size={13} className="mt-0.5 shrink-0 text-emerald-500" />
                 {t}
               </li>

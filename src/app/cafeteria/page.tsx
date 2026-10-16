@@ -15,10 +15,7 @@ export default async function CafeteriaPage() {
         title="ایستگاه سلف — اسکن بلیط"
         description={`امروز ${toPersianDigits(data.counts.total)} رزرو — ${toPersianDigits(data.counts.used)} تحویل‌شده`}
       />
-      <CafeteriaScanClient
-        initialItems={data.items}
-        counts={data.counts}
-      />
+      <CafeteriaScanClient initialItems={data.items} counts={data.counts} />
     </div>
   );
 }

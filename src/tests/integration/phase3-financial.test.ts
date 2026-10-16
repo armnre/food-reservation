@@ -4,10 +4,22 @@ import { db } from '@/db';
 import { wallets, withdrawalRequests, reservations } from '@/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { requestWithdrawal, approveWithdrawal, rejectWithdrawal } from '@/server/services/payment';
-import { manualCharge, markNoShowReservations, reconcileLedger, MAX_MANUAL_CHARGE_RIALS } from '@/server/services/wallet-ops';
+import {
+  manualCharge,
+  markNoShowReservations,
+  reconcileLedger,
+  MAX_MANUAL_CHARGE_RIALS,
+} from '@/server/services/wallet-ops';
 import { getSystemWallet } from '@/server/services/wallet';
 import { validateIban } from '@/lib/iban';
-import { createStudent, createMenuItemWithPrice, depositUserWallet, getWalletBalance, testActor, closePool } from './helpers';
+import {
+  createStudent,
+  createMenuItemWithPrice,
+  depositUserWallet,
+  getWalletBalance,
+  testActor,
+  closePool,
+} from './helpers';
 
 /** شبای معتبر تستی — تولیدشده با الگوریتم mod-97 */
 const VALID_IBAN = 'IR820540102680020817909002';
@@ -60,7 +72,12 @@ describe('فاز ۳ — شارژ دستی', () => {
     expect(noReason.ok).toBe(false);
     const negative = await manualCharge({ actor, userId: s.userId, amountRials: -5, reason: 'تست' });
     expect(negative.ok).toBe(false);
-    const overCap = await manualCharge({ actor, userId: s.userId, amountRials: MAX_MANUAL_CHARGE_RIALS + 1, reason: 'تست سقف' });
+    const overCap = await manualCharge({
+      actor,
+      userId: s.userId,
+      amountRials: MAX_MANUAL_CHARGE_RIALS + 1,
+      reason: 'تست سقف',
+    });
     expect(overCap.ok).toBe(false);
   });
 });
@@ -73,8 +90,11 @@ describe('فاز ۳ — برداشت با escrow', () => {
 
     // درخواست برداشت با شبا
     const req = await requestWithdrawal({
-      userId: s.userId, amountRials: 400_000,
-      iban: VALID_IBAN, accountHolder: 'علی رضایی', actor,
+      userId: s.userId,
+      amountRials: 400_000,
+      iban: VALID_IBAN,
+      accountHolder: 'علی رضایی',
+      actor,
     });
     expect(req.ok).toBe(true);
     if (!req.ok) return;
@@ -104,8 +124,11 @@ describe('فاز ۳ — برداشت با escrow', () => {
 
     const adjustmentBefore = (await getSystemWallet('ADJUSTMENT')).balanceRials;
     const req = await requestWithdrawal({
-      userId: s.userId, amountRials: 200_000,
-      iban: VALID_IBAN, accountHolder: 'علی رضایی', actor,
+      userId: s.userId,
+      amountRials: 200_000,
+      iban: VALID_IBAN,
+      accountHolder: 'علی رضایی',
+      actor,
     });
     expect(req.ok).toBe(true);
     if (!req.ok) return;
@@ -136,8 +159,11 @@ describe('فاز ۳ — برداشت با escrow', () => {
     const actor = testActor(s.userId);
 
     const req = await requestWithdrawal({
-      userId: s.userId, amountRials: 300_000,
-      iban: VALID_IBAN, accountHolder: 'تست', actor,
+      userId: s.userId,
+      amountRials: 300_000,
+      iban: VALID_IBAN,
+      accountHolder: 'تست',
+      actor,
     });
     expect(req.ok).toBe(true);
     if (!req.ok) return;
@@ -158,8 +184,11 @@ describe('فاز ۳ — برداشت با escrow', () => {
     const s = await createStudent();
     await depositUserWallet(s.userId, 500_000);
     const res = await requestWithdrawal({
-      userId: s.userId, amountRials: 100_000,
-      iban: 'IR123', accountHolder: 'تست', actor: testActor(s.userId),
+      userId: s.userId,
+      amountRials: 100_000,
+      iban: 'IR123',
+      accountHolder: 'تست',
+      actor: testActor(s.userId),
     });
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toContain('شبا');
@@ -204,7 +233,12 @@ describe('فاز ۳ — NO_SHOW و تطبیق', () => {
     // منوی دیروز — وعده گذشته
     const { itemId } = await createMenuItemWithPrice({ priceRials: 50_000, dayOffset: -1 });
     const { createReservation } = await import('@/server/services/reservation');
-    const r = await createReservation({ userId: s.userId, menuItemId: itemId, idempotencyKey: randomUUID(), actor: testActor(s.userId) });
+    const r = await createReservation({
+      userId: s.userId,
+      menuItemId: itemId,
+      idempotencyKey: randomUUID(),
+      actor: testActor(s.userId),
+    });
     expect(r.ok).toBe(true);
 
     const { updated } = await markNoShowReservations();
@@ -222,4 +256,3 @@ describe('فاز ۳ — NO_SHOW و تطبیق', () => {
     expect(result.ok).toBe(true);
   });
 });
-

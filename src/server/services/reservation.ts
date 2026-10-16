@@ -1,14 +1,24 @@
 import { db } from '@/db';
 import {
-  reservations, menuItems, menus, menuItemPrices, mealSlots, foods,
-  users, studentProfiles, staffProfiles,
+  reservations,
+  menuItems,
+  menus,
+  menuItemPrices,
+  mealSlots,
+  foods,
+  users,
+  studentProfiles,
+  staffProfiles,
 } from '@/db/schema';
 import { and, eq, isNull, sql, desc, inArray } from 'drizzle-orm';
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { env } from '@/lib/env';
 import { audit, type AuditActor } from '@/lib/audit';
 import { BizError, getOrCreateWalletInTx, getSystemWalletInTx, recordTransactionInTx } from './wallet';
-import { toJalaliDateTime, isSameTehranDay, todayTehran } from '@/lib/jalali';
+import { assertUserEligibleInTx } from './eligibility';
+import { getBusinessSettings, getBusinessSettingsInTx } from './settings';
+import { mealInstant } from '@/lib/tehran-time';
+import { toJalaliDateTime, menuDayToJalali, startOfMenuDay, tehranDayKey } from '@/lib/jalali';
 import QRCode from 'qrcode';
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -27,11 +37,9 @@ export function verifyQrToken(token: string): string | null {
   if (parts.length !== 2) return null;
   const [id, sig] = parts;
   if (!id || !sig) return null;
-  const expected = createHmac('sha256', env.dataHashKey)
-    .update(`reservation:${id}`)
-    .digest('base64url');
+  const expected = createHmac('sha256', env.dataHashKey).update(`reservation:${id}`).digest('base64url');
   if (expected.length !== sig.length) return null;
-  return timingSafeEqual(Buffer.from(expected),Buffer.from(sig)) ? id : null;
+  return timingSafeEqual(Buffer.from(expected), Buffer.from(sig)) ? id : null;
 }
 
 /** تولید QR به‌صورت Data URL (PNG) */
@@ -76,7 +84,9 @@ export async function createReservation(input: {
   }
 
   // idempotency — تکرار همان تلاش، رزرو موجود را برمی‌گرداند و دوباره کسر نمی‌کند
-  const existing = await db.select().from(reservations)
+  const existing = await db
+    .select()
+    .from(reservations)
     .where(eq(reservations.idempotencyKey, idempotencyKey))
     .limit(1);
   if (existing[0]) {
@@ -84,12 +94,16 @@ export async function createReservation(input: {
   }
 
   // اگر کاربر همین حالا رزرو فعال برای این آیتم دارد، بدون کسر دوباره همان را برگردان
-  const activeAlready = await db.select().from(reservations)
-    .where(and(
-      eq(reservations.userId, input.userId),
-      eq(reservations.menuItemId, input.menuItemId),
-      eq(reservations.status, 'CONFIRMED'),
-    ))
+  const activeAlready = await db
+    .select()
+    .from(reservations)
+    .where(
+      and(
+        eq(reservations.userId, input.userId),
+        eq(reservations.menuItemId, input.menuItemId),
+        eq(reservations.status, 'CONFIRMED'),
+      ),
+    )
     .limit(1);
   if (activeAlready[0]) {
     return { ok: true as const, reservation: activeAlready[0], idempotent: true };
@@ -102,8 +116,14 @@ export async function createReservation(input: {
 
   try {
     const reservation = await db.transaction(async (tx) => {
+      // فاز ۱-۶: فعال بودن کاربر و وضعیت ACTIVE دانشجو *داخل* تراکنش و زیر قفل
+      // ردیف بررسی می‌شود؛ غیرفعال‌سازی هم‌زمان نمی‌تواند بین چک و ثبت فاصله بیندازد.
+      await assertUserEligibleInTx(tx, input.userId, 'reserve');
+
       // همهٔ چک‌ها داخل تراکنش و زیر قفل ردیف آیتم (فاز ۳-۳)
-      const locked = await tx.select().from(menuItems)
+      const locked = await tx
+        .select()
+        .from(menuItems)
         .where(eq(menuItems.id, input.menuItemId))
         .for('update');
       const lockedItem = locked[0];
@@ -124,11 +144,43 @@ export async function createReservation(input: {
         throw new BizError('زمان رزرو این وعده به پایان رسیده است');
       }
 
-      const priceRows = await tx.select().from(menuItemPrices)
-        .where(and(
-          eq(menuItemPrices.menuItemId, input.menuItemId),
-          eq(menuItemPrices.customerGroup, group as never),
-        ))
+      // فاز ۲-۳: شروع وعده نباید گذشته باشد (محاسبه به وقت تهران)
+      const settings = await getBusinessSettingsInTx(tx);
+      const slotRows = await tx.select().from(mealSlots).where(eq(mealSlots.id, menu.mealSlotId)).limit(1);
+      if (!slotRows[0]) throw new BizError('وعده یافت نشد');
+      const mealStart = mealInstant(menu.date, slotRows[0].startTime);
+      if (now > mealStart) {
+        throw new BizError(`زمان این وعده (${toJalaliDateTime(mealStart)}) گذشته است`);
+      }
+
+      // فاز ۲-۳: سقف رزرو فعال یک کاربر در یک وعده (منو = روز + وعده)
+      const [capRow] = await tx
+        .select({ n: sql<number>`count(*)::int` })
+        .from(reservations)
+        .innerJoin(menuItems, eq(menuItems.id, reservations.menuItemId))
+        .where(
+          and(
+            eq(reservations.userId, input.userId),
+            eq(menuItems.menuId, menu.id),
+            eq(reservations.status, 'CONFIRMED'),
+          ),
+        );
+      const alreadyInMeal = capRow?.n ?? 0;
+      if (alreadyInMeal >= settings.max_reservations_per_meal) {
+        throw new BizError(
+          `شما در این وعده ${alreadyInMeal} رزرو فعال دارید؛ سقف مجاز ${settings.max_reservations_per_meal} است`,
+        );
+      }
+
+      const priceRows = await tx
+        .select()
+        .from(menuItemPrices)
+        .where(
+          and(
+            eq(menuItemPrices.menuItemId, input.menuItemId),
+            eq(menuItemPrices.customerGroup, group as never),
+          ),
+        )
         .limit(1);
       if (!priceRows[0]) throw new BizError('این غذا برای گروه شما تعریف نشده است');
       const price = priceRows[0].priceRials;
@@ -148,22 +200,26 @@ export async function createReservation(input: {
       });
 
       // افزایش شمارنده رزرو
-      await tx.update(menuItems)
+      await tx
+        .update(menuItems)
         .set({ reservedCount: sql`${menuItems.reservedCount} + 1`, updatedAt: new Date() })
         .where(eq(menuItems.id, input.menuItemId));
 
       // ایجاد رزرو
-      const [r] = await tx.insert(reservations).values({
-        id: reservationId,
-        userId: input.userId,
-        menuItemId: input.menuItemId,
-        status: 'CONFIRMED',
-        quantity: 1,
-        priceSnapshotRials: price,
-        qrToken,
-        idempotencyKey,
-        reservedAt: new Date(),
-      }).returning();
+      const [r] = await tx
+        .insert(reservations)
+        .values({
+          id: reservationId,
+          userId: input.userId,
+          menuItemId: input.menuItemId,
+          status: 'CONFIRMED',
+          quantity: 1,
+          priceSnapshotRials: price,
+          qrToken,
+          idempotencyKey,
+          reservedAt: new Date(),
+        })
+        .returning();
 
       return r;
     });
@@ -180,16 +236,22 @@ export async function createReservation(input: {
   } catch (e) {
     if (e instanceof BizError) return { ok: false as const, error: e.message };
     // تداخل هم‌زمان: تکرار همان تلاش (کلید یکتا) یا رزرو فعال هم‌زمان برای همین آیتم
-    const dup = await db.select().from(reservations)
+    const dup = await db
+      .select()
+      .from(reservations)
       .where(eq(reservations.idempotencyKey, idempotencyKey))
       .limit(1);
     if (dup[0]) return { ok: true as const, reservation: dup[0], idempotent: true };
-    const active = await db.select().from(reservations)
-      .where(and(
-        eq(reservations.userId, input.userId),
-        eq(reservations.menuItemId, input.menuItemId),
-        eq(reservations.status, 'CONFIRMED'),
-      ))
+    const active = await db
+      .select()
+      .from(reservations)
+      .where(
+        and(
+          eq(reservations.userId, input.userId),
+          eq(reservations.menuItemId, input.menuItemId),
+          eq(reservations.status, 'CONFIRMED'),
+        ),
+      )
       .limit(1);
     if (active[0]) return { ok: true as const, reservation: active[0], idempotent: true };
     throw e;
@@ -198,14 +260,60 @@ export async function createReservation(input: {
 
 /* ───────────── لغو رزرو ───────────── */
 
+/**
+ * مهلت لغو و اطلاعات نمایشی آن (فاز ۲-۲).
+ *
+ * قاعده: لغو تا «شروع وعده − cancel_cutoff_hours» مجاز است — *مستقل* از بازهٔ
+ * رزرو (reservationClosesAt). پیش از این از reservationClosesAt استفاده می‌شد که
+ * یک فیلد اختیاری و مربوط به «پنجرهٔ رزرو» است، نه مهلت لغو؛ در نتیجه منوهایی
+ * که پنجره نداشتند عملاً تا لحظهٔ سرو قابل لغو بودند.
+ *
+ * لحظهٔ وعده با mealInstant از «روز تقویمی تهران منو» + «ساعت وعده» ساخته می‌شود
+ * تا با TZ سرور جابه‌جا نشود.
+ */
+export async function getCancelDeadline(reservationId: string): Promise<{
+  ok: true;
+  deadline: Date;
+  mealStart: Date;
+  cutoffHours: number;
+  cancellable: boolean;
+} | { ok: false; error: string }> {
+  const rows = await db
+    .select({
+      id: reservations.id,
+      menuItemId: reservations.menuItemId,
+      menuDate: menus.date,
+      slotStart: mealSlots.startTime,
+    })
+    .from(reservations)
+    .innerJoin(menuItems, eq(menuItems.id, reservations.menuItemId))
+    .innerJoin(menus, eq(menus.id, menuItems.menuId))
+    .innerJoin(mealSlots, eq(mealSlots.id, menus.mealSlotId))
+    .where(eq(reservations.id, reservationId))
+    .limit(1);
+  const row = rows[0];
+  if (!row) return { ok: false, error: 'رزرو یافت نشد' };
+
+  const { cancel_cutoff_hours } = await getBusinessSettings();
+  const mealStart = mealInstant(row.menuDate, row.slotStart);
+  const deadline = new Date(mealStart.getTime() - cancel_cutoff_hours * 3600_000);
+  return {
+    ok: true,
+    deadline,
+    mealStart,
+    cutoffHours: cancel_cutoff_hours,
+    cancellable: Date.now() <= deadline.getTime(),
+  };
+}
+
 export async function cancelReservation(input: {
   userId: string;
   reservationId: string;
   actor: AuditActor;
+  /** دلیل لغو — پیش‌فرض درخواست خود کاربر */
+  reason?: 'USER_REQUEST' | 'MEAL_UNAVAILABLE';
 }) {
-  const rows = await db.select().from(reservations)
-    .where(eq(reservations.id, input.reservationId))
-    .limit(1);
+  const rows = await db.select().from(reservations).where(eq(reservations.id, input.reservationId)).limit(1);
   const r = rows[0];
   if (!r) return { ok: false as const, error: 'رزرو یافت نشد' };
   if (r.userId !== input.userId) {
@@ -215,26 +323,41 @@ export async function cancelReservation(input: {
     return { ok: false as const, error: 'این رزرو قابل لغو نیست' };
   }
 
-  const itemRows = await db.select().from(menuItems).where(eq(menuItems.id, r.menuItemId)).limit(1);
-  const item = itemRows[0];
-  if (!item) return { ok: false as const, error: 'آیتم منو یافت نشد' };
-  const menuRows = await db.select().from(menus).where(eq(menus.id, item.menuId)).limit(1);
-  const menu = menuRows[0];
-  if (!menu) return { ok: false as const, error: 'منو یافت نشد' };
-
-  const now = new Date();
-  const cancelDeadline = menu.reservationClosesAt ?? menu.date;
-  if (now > cancelDeadline) {
-    return { ok: false as const, error: 'زمان لغو این رزرو به پایان رسیده است' };
+  // مهلت لغو — پیش از تراکنش، برای دادن پیام خطای دقیق و خوانا
+  const deadlineInfo = await getCancelDeadline(r.id);
+  if (deadlineInfo.ok && !deadlineInfo.cancellable) {
+    return {
+      ok: false as const,
+      error: `مهلت لغو این رزرو در ${toJalaliDateTime(deadlineInfo.deadline)} به پایان رسیده است`,
+      deadlineIso: deadlineInfo.deadline.toISOString(),
+    };
   }
+
+  const reason = input.reason ?? 'USER_REQUEST';
 
   try {
     await db.transaction(async (tx) => {
-      const locked = await tx.select().from(reservations)
-        .where(eq(reservations.id, r.id))
-        .for('update');
-      if (locked[0].status !== 'CONFIRMED') {
+      const locked = await tx.select().from(reservations).where(eq(reservations.id, r.id)).for('update');
+      if (!locked[0] || locked[0].status !== 'CONFIRMED') {
         throw new BizError('این رزرو قابل لغو نیست');
+      }
+
+      // فاز ۲-۲: مهلت لغو *داخل* تراکنش هم بازبینی می‌شود تا لغوِ هم‌زمان با
+      // اسکن یا با تغییر مهلت، نتواند از چک بیرون تراکنش عبور کند.
+      const settings = await getBusinessSettingsInTx(tx);
+      const mealRows = await tx
+        .select({ menuDate: menus.date, slotStart: mealSlots.startTime })
+        .from(menuItems)
+        .innerJoin(menus, eq(menus.id, menuItems.menuId))
+        .innerJoin(mealSlots, eq(mealSlots.id, menus.mealSlotId))
+        .where(eq(menuItems.id, r.menuItemId))
+        .limit(1);
+      if (mealRows[0]) {
+        const mealStart = mealInstant(mealRows[0].menuDate, mealRows[0].slotStart);
+        const deadline = new Date(mealStart.getTime() - settings.cancel_cutoff_hours * 3600_000);
+        if (Date.now() > deadline.getTime()) {
+          throw new BizError(`مهلت لغو این رزرو در ${toJalaliDateTime(deadline)} به پایان رسیده است`);
+        }
       }
 
       // دفتر کل دوطرفه — کاربر +قیمت و TREASURY −قیمت
@@ -243,21 +366,33 @@ export async function cancelReservation(input: {
       await recordTransactionInTx(tx, {
         idempotencyKey: `cancel:${r.id}`,
         referenceId: r.id,
-        description: 'لغو رزرو غذا',
+        description: reason === 'MEAL_UNAVAILABLE' ? 'لغو رزرو — در دسترس نبودن وعده' : 'لغو رزرو غذا',
         legs: [
-          { walletId: userWallet.id, amountRials: r.priceSnapshotRials, entryType: 'REFUND', description: 'بازپرداخت لغو رزرو' },
-          { walletId: treasury.id, amountRials: -r.priceSnapshotRials, entryType: 'REFUND', description: 'بازگشت فروش غذا' },
+          {
+            walletId: userWallet.id,
+            amountRials: r.priceSnapshotRials,
+            entryType: 'REFUND',
+            description: 'بازپرداخت لغو رزرو',
+          },
+          {
+            walletId: treasury.id,
+            amountRials: -r.priceSnapshotRials,
+            entryType: 'REFUND',
+            description: 'بازگشت فروش غذا',
+          },
         ],
       });
 
       // کاهش شمارنده
-      await tx.update(menuItems)
+      await tx
+        .update(menuItems)
         .set({ reservedCount: sql`${menuItems.reservedCount} - 1`, updatedAt: new Date() })
         .where(eq(menuItems.id, r.menuItemId));
 
-      await tx.update(reservations)
-        .set({ status: 'CANCELLED', cancelledAt: new Date(), updatedAt: new Date() })
-        .where(eq(reservations.id, r.id));
+      await tx
+        .update(reservations)
+        .set({ status: 'CANCELLED', cancelReason: reason, cancelledAt: new Date(), updatedAt: new Date() })
+        .where(and(eq(reservations.id, r.id), eq(reservations.status, 'CONFIRMED')));
     });
   } catch (e) {
     if (e instanceof BizError) return { ok: false as const, error: e.message };
@@ -269,7 +404,7 @@ export async function cancelReservation(input: {
     action: 'reservation:cancelled',
     entityType: 'reservation',
     entityId: r.id,
-    after: { refundedRials: r.priceSnapshotRials },
+    after: { refundedRials: r.priceSnapshotRials, reason },
   });
 
   return { ok: true as const };
@@ -283,17 +418,21 @@ export async function scanReservation(qrToken: string) {
     return { ok: false as const, error: 'QR نامعتبر است' };
   }
 
-  const rows = await db.select().from(reservations)
-    .where(eq(reservations.id, reservationId))
-    .limit(1);
+  const rows = await db.select().from(reservations).where(eq(reservations.id, reservationId)).limit(1);
   const r = rows[0];
   if (!r) return { ok: false as const, error: 'رزرو یافت نشد' };
 
   const itemRows = await db.select().from(menuItems).where(eq(menuItems.id, r.menuItemId)).limit(1);
   const item = itemRows[0];
-  const menuRows = await db.select().from(menus).where(eq(menus.id, item?.menuId ?? '')).limit(1);
+  const menuRows = await db
+    .select()
+    .from(menus)
+    .where(eq(menus.id, item?.menuId ?? ''))
+    .limit(1);
   const menu = menuRows[0];
-  const slotRows = menu ? await db.select().from(mealSlots).where(eq(mealSlots.id, menu.mealSlotId)).limit(1) : [];
+  const slotRows = menu
+    ? await db.select().from(mealSlots).where(eq(mealSlots.id, menu.mealSlotId)).limit(1)
+    : [];
   const slot = slotRows[0];
   const foodRows = item ? await db.select().from(foods).where(eq(foods.id, item.foodId)).limit(1) : [];
   const food = foodRows[0];
@@ -301,7 +440,7 @@ export async function scanReservation(qrToken: string) {
   const user = userRows[0];
 
   // «امروز» یعنی امروزِ تقویمی تهران — مستقل از TZ سرور
-  const isToday = menu ? isSameTehranDay(new Date(), new Date(menu.date)) : false;
+  const isToday = menu ? menu.date === tehranDayKey(new Date()) : false;
 
   return {
     ok: true as const,
@@ -315,11 +454,7 @@ export async function scanReservation(qrToken: string) {
   };
 }
 
-export async function markReservationUsed(input: {
-  qrToken: string;
-  operatorId: string;
-  actor: AuditActor;
-}) {
+export async function markReservationUsed(input: { qrToken: string; operatorId: string; actor: AuditActor }) {
   const scanned = await scanReservation(input.qrToken);
   if (!scanned.ok) return scanned;
 
@@ -334,10 +469,12 @@ export async function markReservationUsed(input: {
     return { ok: false as const, error: 'این رزرو مربوط به امروز نیست' };
   }
 
-  const consumed=await db.update(reservations)
-    .set({status:'USED',usedAt:new Date(),updatedAt:new Date()})
-    .where(and(eq(reservations.id,reservation.id),eq(reservations.status,'CONFIRMED'))).returning({id:reservations.id});
-  if(!consumed.length)return {ok:false as const,error:'این بلیط قبلاً تحویل شده است'};
+  const consumed = await db
+    .update(reservations)
+    .set({ status: 'USED', usedAt: new Date(), updatedAt: new Date() })
+    .where(and(eq(reservations.id, reservation.id), eq(reservations.status, 'CONFIRMED')))
+    .returning({ id: reservations.id });
+  if (!consumed.length) return { ok: false as const, error: 'این بلیط قبلاً تحویل شده است' };
 
   await audit({
     actor: input.actor,
@@ -359,7 +496,9 @@ export async function markReservationUsed(input: {
 /* ─────────────کوئری — رزروهای من ───────────── */
 
 export async function getMyReservations(userId: string) {
-  const rows = await db.select().from(reservations)
+  const rows = await db
+    .select()
+    .from(reservations)
     .where(and(eq(reservations.userId, userId), isNull(reservations.deletedAt)))
     .orderBy(desc(reservations.createdAt))
     .limit(100);
@@ -369,13 +508,10 @@ export async function getMyReservations(userId: string) {
   const itemIds = rows.map((r) => r.menuItemId);
   const items = await db.select().from(menuItems).where(inArray(menuItems.id, itemIds));
   const menuIds = items.map((i) => i.menuId);
-  const menuRows = menuIds.length > 0
-    ? await db.select().from(menus).where(inArray(menus.id, menuIds))
-    : [];
+  const menuRows = menuIds.length > 0 ? await db.select().from(menus).where(inArray(menus.id, menuIds)) : [];
   const slotIds = menuRows.map((m) => m.mealSlotId);
-  const slotRows = slotIds.length > 0
-    ? await db.select().from(mealSlots).where(inArray(mealSlots.id, slotIds))
-    : [];
+  const slotRows =
+    slotIds.length > 0 ? await db.select().from(mealSlots).where(inArray(mealSlots.id, slotIds)) : [];
   const foodIds = items.map((i) => i.foodId);
   const foodRows = await db.select().from(foods).where(inArray(foods.id, foodIds));
 
@@ -400,39 +536,34 @@ export async function getMyReservations(userId: string) {
       foodName: food?.name ?? '—',
       foodThumb: food?.thumbPath ?? null,
       mealSlotName: slot?.name ?? '—',
-      menuDate: menu ? toJalaliDateTime(menu.date) : '—',
+      menuDate: menu ? menuDayToJalali(menu.date) : '—',
       menuStatus: menu?.status ?? null,
       reservationClosesAt: menu?.reservationClosesAt?.toISOString() ?? null,
-      menuDateIso: menu?.date.toISOString() ?? null,
+      menuDateIso: menu ? startOfMenuDay(menu.date).toISOString() : null,
     };
   });
 }
 
 /** رزروهای امروز برای اپراتور سلف */
 export async function getTodayReservations() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-
-  const menuRows = await db.select().from(menus).where(
-    and(sql`${menus.date} >= ${today}`, sql`${menus.date} < ${tomorrow}`),
-  );
+  // فاز ۱-۴: «امروز» = کلید روز تقویمی تهران (ستون date نوع `date` است)
+  const todayKey = tehranDayKey(new Date());
+  const menuRows = await db.select().from(menus).where(eq(menus.date, todayKey));
   if (menuRows.length === 0) return [];
 
   const menuIds = menuRows.map((m) => m.id);
   const items = await db.select().from(menuItems).where(inArray(menuItems.menuId, menuIds));
   const itemIds = items.map((i) => i.id);
-  const rows = itemIds.length > 0
-    ? await db.select().from(reservations).where(
-        and(inArray(reservations.menuItemId, itemIds), isNull(reservations.deletedAt)),
-      )
-    : [];
+  const rows =
+    itemIds.length > 0
+      ? await db
+          .select()
+          .from(reservations)
+          .where(and(inArray(reservations.menuItemId, itemIds), isNull(reservations.deletedAt)))
+      : [];
 
   const userIds = [...new Set(rows.map((r) => r.userId))];
-  const userRows = userIds.length > 0
-    ? await db.select().from(users).where(inArray(users.id, userIds))
-    : [];
+  const userRows = userIds.length > 0 ? await db.select().from(users).where(inArray(users.id, userIds)) : [];
   const foodIds = items.map((i) => i.foodId);
   const foodRows = await db.select().from(foods).where(inArray(foods.id, foodIds));
   const slotIds = menuRows.map((m) => m.mealSlotId);

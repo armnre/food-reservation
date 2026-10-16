@@ -19,12 +19,26 @@ export interface AuditItem {
 }
 
 const ACTIONS = [
-  'auth:login_success', 'auth:login_failed', 'auth:suspicious_activity',
-  'auth:password_changed', 'auth:password_reset', 'student:created', 'student:updated',
-  'student:status_changed', 'student:reset_password', 'student:national_code_revealed',
-  'staff:created', 'staff:updated', 'staff:credentials_exported',
-  'import:previewed', 'import:committed', 'import:undone',
-  'user:created', 'user:updated', 'user:deactivated', 'user:activated',
+  'auth:login_success',
+  'auth:login_failed',
+  'auth:suspicious_activity',
+  'auth:password_changed',
+  'auth:password_reset',
+  'student:created',
+  'student:updated',
+  'student:status_changed',
+  'student:reset_password',
+  'student:national_code_revealed',
+  'staff:created',
+  'staff:updated',
+  'staff:credentials_exported',
+  'import:previewed',
+  'import:committed',
+  'import:undone',
+  'user:created',
+  'user:updated',
+  'user:deactivated',
+  'user:activated',
 ];
 
 const ACTION_TONE: Record<string, 'success' | 'danger' | 'warning' | 'info' | 'muted'> = {
@@ -38,7 +52,11 @@ const ACTION_TONE: Record<string, 'success' | 'danger' | 'warning' | 'info' | 'm
 };
 
 export function AuditLogsClient({
-  items, total, page, pageSize, initialQuery,
+  items,
+  total,
+  page,
+  pageSize,
+  initialQuery,
 }: {
   items: AuditItem[];
   total: number;
@@ -60,7 +78,12 @@ export function AuditLogsClient({
   }
 
   const columns: Column<AuditItem>[] = [
-    { key: 'createdAt', header: 'زمان', width: '150px', render: (r) => <span className="text-[11px]">{r.createdAt}</span> },
+    {
+      key: 'createdAt',
+      header: 'زمان',
+      width: '150px',
+      render: (r) => <span className="text-[11px]">{r.createdAt}</span>,
+    },
     {
       key: 'action',
       header: 'عملیات',
@@ -83,7 +106,11 @@ export function AuditLogsClient({
       render: (r) => (
         <div>
           <p className="text-[11px]">{r.entityType}</p>
-          {r.entityId && <p className="font-mono text-[9px] text-[var(--color-foreground-muted)]" dir="ltr">{r.entityId.slice(0, 8)}…</p>}
+          {r.entityId && (
+            <p className="font-mono text-[9px] text-[var(--color-foreground-muted)]" dir="ltr">
+              {r.entityId.slice(0, 8)}…
+            </p>
+          )}
         </div>
       ),
     },
@@ -91,14 +118,21 @@ export function AuditLogsClient({
       key: 'ip',
       header: 'IP',
       hideOnMobile: true,
-      render: (r) => <span className="font-mono text-[10px]" dir="ltr">{r.ip ?? '—'}</span>,
+      render: (r) => (
+        <span className="font-mono text-[10px]" dir="ltr">
+          {r.ip ?? '—'}
+        </span>
+      ),
     },
     {
       key: 'detail',
       header: 'جزئیات',
       render: (r) => (
         <button
-          onClick={(e) => { e.stopPropagation(); setDetail(r); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            setDetail(r);
+          }}
           className="rounded-lg border border-[var(--color-border)] px-2.5 py-1 text-[11px] text-[var(--color-foreground-muted)] transition-colors hover:bg-[var(--color-brand-50)] hover:text-[var(--color-brand-700)]"
         >
           مشاهده
@@ -113,15 +147,27 @@ export function AuditLogsClient({
         <div className="flex flex-wrap items-end gap-3">
           <div className="w-64">
             <Field label="نوع عملیات" htmlFor="action">
-              <Select id="action" value={initialQuery.action} onChange={(e) => navigate({ action: e.target.value, page: 1 })}>
+              <Select
+                id="action"
+                value={initialQuery.action}
+                onChange={(e) => navigate({ action: e.target.value, page: 1 })}
+              >
                 <option value="ALL">همه عملیات</option>
-                {ACTIONS.map((a) => <option key={a} value={a}>{a}</option>)}
+                {ACTIONS.map((a) => (
+                  <option key={a} value={a}>
+                    {a}
+                  </option>
+                ))}
               </Select>
             </Field>
           </div>
           <div className="w-52">
             <Field label="نوع موجودیت" htmlFor="entityType">
-              <Select id="entityType" value={initialQuery.entityType} onChange={(e) => navigate({ entityType: e.target.value, page: 1 })}>
+              <Select
+                id="entityType"
+                value={initialQuery.entityType}
+                onChange={(e) => navigate({ entityType: e.target.value, page: 1 })}
+              >
                 <option value="ALL">همه موجودیت‌ها</option>
                 <option value="user">user</option>
                 <option value="student_profile">student_profile</option>
@@ -156,24 +202,43 @@ export function AuditLogsClient({
                 { icon: <Clock size={13} />, label: 'زمان', value: detail.createdAt },
                 { icon: <ShieldCheck size={13} />, label: 'عملیات', value: detail.action },
                 { icon: <User size={13} />, label: 'عامل', value: detail.actorRole ?? '—' },
-                { icon: <Database size={13} />, label: 'موجودیت', value: `${detail.entityType}${detail.entityId ? ` · ${detail.entityId}` : ''}` },
+                {
+                  icon: <Database size={13} />,
+                  label: 'موجودیت',
+                  value: `${detail.entityType}${detail.entityId ? ` · ${detail.entityId}` : ''}`,
+                },
               ].map((f) => (
-                <div key={f.label} className="rounded-lg border border-[var(--color-border-subtle)] px-3.5 py-2.5">
-                  <p className="flex items-center gap-1.5 text-[10px] text-[var(--color-foreground-muted)]">{f.icon} {f.label}</p>
+                <div
+                  key={f.label}
+                  className="rounded-lg border border-[var(--color-border-subtle)] px-3.5 py-2.5"
+                >
+                  <p className="flex items-center gap-1.5 text-[10px] text-[var(--color-foreground-muted)]">
+                    {f.icon} {f.label}
+                  </p>
                   <p className="mt-1 truncate text-xs font-semibold">{f.value}</p>
                 </div>
               ))}
             </div>
 
             <div>
-              <p className="mb-1.5 text-[11px] font-semibold text-[var(--color-foreground-muted)]">پیش از تغییر</p>
-              <pre className="max-h-52 overflow-auto rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)]/40 p-3 text-[10px] leading-relaxed" dir="ltr">
+              <p className="mb-1.5 text-[11px] font-semibold text-[var(--color-foreground-muted)]">
+                پیش از تغییر
+              </p>
+              <pre
+                className="max-h-52 overflow-auto rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)]/40 p-3 text-[10px] leading-relaxed"
+                dir="ltr"
+              >
                 {detail.before ? JSON.stringify(detail.before, null, 2) : '—'}
               </pre>
             </div>
             <div>
-              <p className="mb-1.5 text-[11px] font-semibold text-[var(--color-foreground-muted)]">پس از تغییر</p>
-              <pre className="max-h-52 overflow-auto rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)]/40 p-3 text-[10px] leading-relaxed" dir="ltr">
+              <p className="mb-1.5 text-[11px] font-semibold text-[var(--color-foreground-muted)]">
+                پس از تغییر
+              </p>
+              <pre
+                className="max-h-52 overflow-auto rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)]/40 p-3 text-[10px] leading-relaxed"
+                dir="ltr"
+              >
                 {detail.after ? JSON.stringify(detail.after, null, 2) : '—'}
               </pre>
             </div>

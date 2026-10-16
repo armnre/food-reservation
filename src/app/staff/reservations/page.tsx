@@ -10,10 +10,7 @@ export default async function StaffReservationsPage() {
 
   return (
     <div>
-      <PageHeader
-        title="بلیطهای من"
-        description="رزروهای فعال با QR، تاریخچه و امکان لغو"
-      />
+      <PageHeader title="بلیطهای من" description="رزروهای فعال با QR، تاریخچه و امکان لغو" />
       <MyReservationsStudent
         items={data.items}
         walletBalanceRials={data.walletBalanceRials}

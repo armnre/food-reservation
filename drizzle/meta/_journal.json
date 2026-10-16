@@ -15,6 +15,13 @@
       "when": 1792104237551,
       "tag": "0001_phase3_double_entry",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792108888571,
+      "tag": "0002_phase1_menu_date_column",
+      "breakpoints": true
     }
   ]
 }

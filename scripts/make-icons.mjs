@@ -14,7 +14,8 @@ async function fullBleed(size, out, scale = 1) {
   const icon = await sharp(svg, { density: 300 }).resize(inner, inner).png().toBuffer();
   await sharp({ create: { width: size, height: size, channels: 4, background: NAVY } })
     .composite([{ input: icon, gravity: 'center' }])
-    .png().toFile(out);
+    .png()
+    .toFile(out);
   console.log('✓', out);
 }
 

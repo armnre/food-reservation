@@ -8,7 +8,12 @@ async function operatorActor() {
   const ctx = await requireRole(ROLES.CAFETERIA_OPERATOR);
   return {
     ctx,
-    actor: { id: ctx.user.id, role: ctx.user.role, ip: null as string | null, userAgent: null as string | null },
+    actor: {
+      id: ctx.user.id,
+      role: ctx.user.role,
+      ip: null as string | null,
+      userAgent: null as string | null,
+    },
   };
 }
 

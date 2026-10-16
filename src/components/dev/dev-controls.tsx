@@ -32,15 +32,34 @@ export function DevControls({ modals = false }: { modals?: boolean }) {
     <>
       <div className="flex flex-wrap gap-2.5">
         <Button onClick={() => setDialog(true)}>باز کردن Dialog</Button>
-        <Button variant="secondary" onClick={() => setDrawer(true)}>باز کردن Drawer</Button>
-        <Button variant="outline" onClick={() => setConfirm(true)}>ConfirmDialog</Button>
-        <Button variant="accent" onClick={() => toast.push({ kind: 'success', title: 'عملیات موفق', description: 'تغییرات با موفقیت ذخیره شد' })}>
+        <Button variant="secondary" onClick={() => setDrawer(true)}>
+          باز کردن Drawer
+        </Button>
+        <Button variant="outline" onClick={() => setConfirm(true)}>
+          ConfirmDialog
+        </Button>
+        <Button
+          variant="accent"
+          onClick={() =>
+            toast.push({ kind: 'success', title: 'عملیات موفق', description: 'تغییرات با موفقیت ذخیره شد' })
+          }
+        >
           Toast موفق
         </Button>
-        <Button variant="danger" onClick={() => toast.push({ kind: 'error', title: 'خطا', description: 'ارتباط با سرور برقرار نشد' })}>
+        <Button
+          variant="danger"
+          onClick={() =>
+            toast.push({ kind: 'error', title: 'خطا', description: 'ارتباط با سرور برقرار نشد' })
+          }
+        >
           Toast خطا
         </Button>
-        <Button variant="ghost" onClick={() => toast.push({ kind: 'warning', title: 'هشدار', description: 'این عملیات قابل بازگشت نیست' })}>
+        <Button
+          variant="ghost"
+          onClick={() =>
+            toast.push({ kind: 'warning', title: 'هشدار', description: 'این عملیات قابل بازگشت نیست' })
+          }
+        >
           Toast هشدار
         </Button>
       </div>
@@ -51,7 +70,9 @@ export function DevControls({ modals = false }: { modals?: boolean }) {
         title="نمونه دیالوگ"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setDialog(false)}>انصراف</Button>
+            <Button variant="ghost" onClick={() => setDialog(false)}>
+              انصراف
+            </Button>
             <Button onClick={() => setDialog(false)}>تأیید</Button>
           </>
         }
@@ -61,8 +82,12 @@ export function DevControls({ modals = false }: { modals?: boolean }) {
         </p>
       </Dialog>
 
-      <Drawer open={drawer} onClose={() => setDrawer(false)} title="نمونه دراور"
-        footer={<Button onClick={() => setDrawer(false)}>بستن</Button>}>
+      <Drawer
+        open={drawer}
+        onClose={() => setDrawer(false)}
+        title="نمونه دراور"
+        footer={<Button onClick={() => setDrawer(false)}>بستن</Button>}
+      >
         <p className="text-sm leading-loose text-[var(--color-foreground-muted)]">
           دراور از سمت راست باز می‌شود و برای نمایش جزئیات رکورد استفاده می‌شود.
         </p>
@@ -71,7 +96,10 @@ export function DevControls({ modals = false }: { modals?: boolean }) {
       <ConfirmDialog
         open={confirm}
         onClose={() => setConfirm(false)}
-        onConfirm={() => { setConfirm(false); toast.push({ kind: 'success', title: 'تأیید شد' }); }}
+        onConfirm={() => {
+          setConfirm(false);
+          toast.push({ kind: 'success', title: 'تأیید شد' });
+        }}
         title="تأیید عملیات"
         description="آیا از انجام این عملیات مطمئن هستید؟ این عمل قابل بازگشت نیست."
         confirmLabel="بله، انجام بده"

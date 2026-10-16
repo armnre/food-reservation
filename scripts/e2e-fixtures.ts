@@ -5,7 +5,90 @@ import { hash } from 'argon2';
 import { db, pool } from '../src/db';
 import { users, studentProfiles, staffProfiles } from '../src/db/schema';
 import { encryptSecret, blindIndex } from '../src/lib/crypto';
-async function main(){if(process.env.NODE_ENV==='production')throw new Error('Fixture creation is forbidden in production');const run=String(Date.now()).slice(-8);const password=randomBytes(18).toString('base64url')+'aA9!';const passwordHash=await hash(password,{type:2,memoryCost:65536,timeCost:3});const fixtures:Record<string,{username:string;password:string;id:string}>={};let i=0;for(const role of ['STUDENT','STAFF','VICE_STUDENT','NUTRITION_MANAGER','CAFETERIA_OPERATOR','SUPER_ADMIN'] as const){const username=role==='STUDENT'?`91${run}`:`qa_${run}_${role.toLowerCase()}`;const [u]=await db.insert(users).values({role,username,passwordHash,mustChangePassword:false,isActive:true,displayName:role==='STUDENT'?'سارا رضایی':`کاربر آزمایشی ${role}`}).returning();fixtures[role]={username,password,id:u.id};if(role==='STUDENT'){const code=makeCode(`17${run}`.slice(0,9));await db.insert(studentProfiles).values({userId:u.id,studentNumber:username,nationalCode:encryptSecret(code),nationalCodeHash:blindIndex(code),firstName:'سارا',lastName:'رضایی',status:'ACTIVE',faculty:'فنی و مهندسی',major:'مهندسی کامپیوتر',entryYear:1404});}else if(role==='STAFF'||role==='CAFETERIA_OPERATOR'){await db.insert(staffProfiles).values({userId:u.id,kind:role==='STAFF'?'EMPLOYEE':'CAFETERIA',department:'دانشگاه شمال'});}i++;}
-const initialNumber=`92${run}`;const code=makeCode(`18${run}`.slice(0,9));const [u]=await db.insert(users).values({role:'STUDENT',username:initialNumber,displayName:'دانشجوی ورود اول',passwordHash:null,mustChangePassword:true,isActive:true}).returning();await db.insert(studentProfiles).values({userId:u.id,studentNumber:initialNumber,nationalCode:encryptSecret(code),nationalCodeHash:blindIndex(code),firstName:'دانشجو',lastName:'جدید',status:'ACTIVE'});fixtures.INITIAL={username:initialNumber,password:code,id:u.id};writeFileSync('.test-credentials.json',JSON.stringify(fixtures),{mode:0o600});console.log(`Created ${i+1} isolated test accounts. Credentials saved in ignored local file.`);await pool.end();}
-function makeCode(prefix:string){const digits=prefix.padStart(9,'0').slice(0,9);const rem=[...digits].reduce((n,d,i)=>n+Number(d)*(10-i),0)%11;return digits+(rem<2?rem:11-rem)}
-main().catch(e=>{console.error(e);process.exit(1)});
+async function main() {
+  if (process.env.NODE_ENV === 'production') throw new Error('Fixture creation is forbidden in production');
+  const run = String(Date.now()).slice(-8);
+  const password = randomBytes(18).toString('base64url') + 'aA9!';
+  const passwordHash = await hash(password, { type: 2, memoryCost: 65536, timeCost: 3 });
+  const fixtures: Record<string, { username: string; password: string; id: string }> = {};
+  let i = 0;
+  for (const role of [
+    'STUDENT',
+    'STAFF',
+    'VICE_STUDENT',
+    'NUTRITION_MANAGER',
+    'CAFETERIA_OPERATOR',
+    'SUPER_ADMIN',
+  ] as const) {
+    const username = role === 'STUDENT' ? `91${run}` : `qa_${run}_${role.toLowerCase()}`;
+    const [u] = await db
+      .insert(users)
+      .values({
+        role,
+        username,
+        passwordHash,
+        mustChangePassword: false,
+        isActive: true,
+        displayName: role === 'STUDENT' ? 'سارا رضایی' : `کاربر آزمایشی ${role}`,
+      })
+      .returning();
+    fixtures[role] = { username, password, id: u.id };
+    if (role === 'STUDENT') {
+      const code = makeCode(`17${run}`.slice(0, 9));
+      await db.insert(studentProfiles).values({
+        userId: u.id,
+        studentNumber: username,
+        nationalCode: encryptSecret(code),
+        nationalCodeHash: blindIndex(code),
+        firstName: 'سارا',
+        lastName: 'رضایی',
+        status: 'ACTIVE',
+        faculty: 'فنی و مهندسی',
+        major: 'مهندسی کامپیوتر',
+        entryYear: 1404,
+      });
+    } else if (role === 'STAFF' || role === 'CAFETERIA_OPERATOR') {
+      await db.insert(staffProfiles).values({
+        userId: u.id,
+        kind: role === 'STAFF' ? 'EMPLOYEE' : 'CAFETERIA',
+        department: 'دانشگاه شمال',
+      });
+    }
+    i++;
+  }
+  const initialNumber = `92${run}`;
+  const code = makeCode(`18${run}`.slice(0, 9));
+  const [u] = await db
+    .insert(users)
+    .values({
+      role: 'STUDENT',
+      username: initialNumber,
+      displayName: 'دانشجوی ورود اول',
+      passwordHash: null,
+      mustChangePassword: true,
+      isActive: true,
+    })
+    .returning();
+  await db.insert(studentProfiles).values({
+    userId: u.id,
+    studentNumber: initialNumber,
+    nationalCode: encryptSecret(code),
+    nationalCodeHash: blindIndex(code),
+    firstName: 'دانشجو',
+    lastName: 'جدید',
+    status: 'ACTIVE',
+  });
+  fixtures.INITIAL = { username: initialNumber, password: code, id: u.id };
+  writeFileSync('.test-credentials.json', JSON.stringify(fixtures), { mode: 0o600 });
+  console.log(`Created ${i + 1} isolated test accounts. Credentials saved in ignored local file.`);
+  await pool.end();
+}
+function makeCode(prefix: string) {
+  const digits = prefix.padStart(9, '0').slice(0, 9);
+  const rem = [...digits].reduce((n, d, i) => n + Number(d) * (10 - i), 0) % 11;
+  return digits + (rem < 2 ? rem : 11 - rem);
+}
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

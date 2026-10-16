@@ -10,10 +10,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function WalletsOverviewPage() {
   await requireRole(ROLES.SUPER_ADMIN, ROLES.NUTRITION_MANAGER);
-  const [balances, ledger] = await Promise.all([
-    getSystemWalletBalances(),
-    getRecentLedgerEntries(50),
-  ]);
+  const [balances, ledger] = await Promise.all([getSystemWalletBalances(), getRecentLedgerEntries(50)]);
 
   return (
     <div>

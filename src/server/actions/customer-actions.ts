@@ -11,7 +11,12 @@ async function customerActor() {
   const ctx = await requireRole(ROLES.STUDENT, ROLES.STAFF);
   return {
     ctx,
-    actor: { id: ctx.user.id, role: ctx.user.role, ip: null as string | null, userAgent: null as string | null },
+    actor: {
+      id: ctx.user.id,
+      role: ctx.user.role,
+      ip: null as string | null,
+      userAgent: null as string | null,
+    },
   };
 }
 
@@ -19,7 +24,12 @@ export async function reserveFoodAction(menuItemId: string) {
   try {
     const { ctx, actor } = await customerActor();
     // هر «تلاش» رزرو یک کلید یکتا می‌گیرد؛ رزرو مجدد پس از لغو مجاز است
-    const res = await createReservation({ userId: ctx.user.id, menuItemId, idempotencyKey: randomUUID(), actor });
+    const res = await createReservation({
+      userId: ctx.user.id,
+      menuItemId,
+      idempotencyKey: randomUUID(),
+      actor,
+    });
     if (!res.ok) return { ok: false as const, error: res.error };
     return { ok: true as const, idempotent: res.idempotent };
   } catch (e) {

@@ -3,8 +3,17 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Wallet, Plus, ArrowDownToLine, ArrowUpFromLine, History,
-  TrendingUp, TrendingDown, Clock, CheckCircle2, XCircle, AlertCircle,
+  Wallet,
+  Plus,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  History,
+  TrendingUp,
+  TrendingDown,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/data';
 import { Button } from '@/components/ui/button';
@@ -40,15 +49,19 @@ const ENTRY_META: Record<string, { label: string; icon: React.ReactNode; tone: '
   SALE: { label: 'فروش', icon: <TrendingUp size={13} />, tone: 'in' },
 };
 
-const PAYMENT_STATUS: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' | 'muted' }> = {
-  PENDING: { label: 'در انتظار', variant: 'warning' },
-  COMPLETED: { label: 'موفق', variant: 'success' },
-  FAILED: { label: 'ناموفق', variant: 'danger' },
-  REFUNDED: { label: 'بازگشت‌داده‌شده', variant: 'muted' },
-};
+const PAYMENT_STATUS: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' | 'muted' }> =
+  {
+    PENDING: { label: 'در انتظار', variant: 'warning' },
+    COMPLETED: { label: 'موفق', variant: 'success' },
+    FAILED: { label: 'ناموفق', variant: 'danger' },
+    REFUNDED: { label: 'بازگشت‌داده‌شده', variant: 'muted' },
+  };
 
 export function WalletClient({
-  balanceRials, ledger, payments, menuHref,
+  balanceRials,
+  ledger,
+  payments,
+  menuHref,
 }: {
   balanceRials: number;
   ledger: LedgerEntryDto[];
@@ -104,10 +117,13 @@ export function WalletClient({
     <div className="space-y-6">
       {/* کارت موجودی */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-[var(--color-brand-950)] via-[#2c2352] to-[var(--color-brand-800)] p-6 text-white shadow-[0_20px_50px_rgba(58,45,125,0.35)]">
-        <div className="absolute left-0 top-0 h-full w-1/2 opacity-20" style={{
-          backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.4) 1px, transparent 0)',
-          backgroundSize: '18px 18px',
-        }} />
+        <div
+          className="absolute left-0 top-0 h-full w-1/2 opacity-20"
+          style={{
+            backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.4) 1px, transparent 0)',
+            backgroundSize: '18px 18px',
+          }}
+        />
         <div className="relative flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-xs text-white/60">موجودی کیف پول</p>
@@ -117,11 +133,21 @@ export function WalletClient({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="accent" icon={<Plus size={16} />} onClick={() => { setAmount(''); setTopUpOpen(true); }}>
+            <Button
+              variant="accent"
+              icon={<Plus size={16} />}
+              onClick={() => {
+                setAmount('');
+                setTopUpOpen(true);
+              }}
+            >
               شارژ کیف پول
             </Button>
             <button
-              onClick={() => { setAmount(''); setWithdrawOpen(true); }}
+              onClick={() => {
+                setAmount('');
+                setWithdrawOpen(true);
+              }}
               className="inline-flex h-11 items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-5 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/20"
             >
               <ArrowUpFromLine size={16} /> درخواست برداشت
@@ -158,10 +184,15 @@ export function WalletClient({
                 const meta = ENTRY_META[e.entryType] ?? ENTRY_META.ADJUSTMENT;
                 const isIn = e.amountRials > 0;
                 return (
-                  <div key={e.id} className="flex items-center gap-3 rounded-lg border border-[var(--color-border-subtle)] px-3.5 py-2.5">
-                    <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${
-                      isIn ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'
-                    }`}>
+                  <div
+                    key={e.id}
+                    className="flex items-center gap-3 rounded-lg border border-[var(--color-border-subtle)] px-3.5 py-2.5"
+                  >
+                    <div
+                      className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${
+                        isIn ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'
+                      }`}
+                    >
                       {meta.icon}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -170,8 +201,11 @@ export function WalletClient({
                         {e.description ?? '—'} — {e.createdAt}
                       </p>
                     </div>
-                    <p className={`shrink-0 text-xs font-bold tabular-nums ${isIn ? 'text-emerald-600' : 'text-rose-500'}`}>
-                      {isIn ? '+' : '−'}{formatToman(Math.abs(e.amountRials))}
+                    <p
+                      className={`shrink-0 text-xs font-bold tabular-nums ${isIn ? 'text-emerald-600' : 'text-rose-500'}`}
+                    >
+                      {isIn ? '+' : '−'}
+                      {formatToman(Math.abs(e.amountRials))}
                     </p>
                   </div>
                 );
@@ -192,7 +226,10 @@ export function WalletClient({
               {payments.map((p) => {
                 const meta = PAYMENT_STATUS[p.status] ?? PAYMENT_STATUS.PENDING;
                 return (
-                  <div key={p.id} className="rounded-lg border border-[var(--color-border-subtle)] px-3.5 py-2.5">
+                  <div
+                    key={p.id}
+                    className="rounded-lg border border-[var(--color-border-subtle)] px-3.5 py-2.5"
+                  >
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs font-semibold tabular-nums">{formatToman(p.amountRials)}</p>
                       <Badge variant={meta.variant}>{meta.label}</Badge>
@@ -214,8 +251,12 @@ export function WalletClient({
         size="sm"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setTopUpOpen(false)}>انصراف</Button>
-            <Button loading={busy} onClick={doTopUp} icon={<Plus size={15} />}>ادامه به پرداخت</Button>
+            <Button variant="ghost" onClick={() => setTopUpOpen(false)}>
+              انصراف
+            </Button>
+            <Button loading={busy} onClick={doTopUp} icon={<Plus size={15} />}>
+              ادامه به پرداخت
+            </Button>
           </>
         }
       >
@@ -251,16 +292,16 @@ export function WalletClient({
         size="sm"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setWithdrawOpen(false)}>انصراف</Button>
-            <Button loading={busy} onClick={doWithdraw} icon={<ArrowUpFromLine size={15} />}>ثبت درخواست</Button>
+            <Button variant="ghost" onClick={() => setWithdrawOpen(false)}>
+              انصراف
+            </Button>
+            <Button loading={busy} onClick={doWithdraw} icon={<ArrowUpFromLine size={15} />}>
+              ثبت درخواست
+            </Button>
           </>
         }
       >
-        <Field
-          label="مبلغ (تومان)"
-          required
-          hint={`حداکثر ${formatToman(balanceRials)} قابل برداشت است`}
-        >
+        <Field label="مبلغ (تومان)" required hint={`حداکثر ${formatToman(balanceRials)} قابل برداشت است`}>
           <TextInput
             dir="ltr"
             inputMode="numeric"

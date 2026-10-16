@@ -44,7 +44,10 @@ export function SlotsClient({ slots }: { slots: SlotItem[] }) {
   }
 
   async function submit() {
-    if (!values.name.trim()) { setError('نام وعده الزامی است'); return; }
+    if (!values.name.trim()) {
+      setError('نام وعده الزامی است');
+      return;
+    }
     setBusy(true);
     const res = await upsertMealSlotAction({
       id: editing?.id,
@@ -53,7 +56,10 @@ export function SlotsClient({ slots }: { slots: SlotItem[] }) {
       endTime: new Date(`1970-01-01T${values.endTime}:00`).toISOString(),
     });
     setBusy(false);
-    if (!res.ok) { setError(res.error); return; }
+    if (!res.ok) {
+      setError(res.error);
+      return;
+    }
     setOpen(false);
     toast.push({ kind: 'success', title: 'وعده ذخیره شد' });
     router.refresh();
@@ -72,13 +78,20 @@ export function SlotsClient({ slots }: { slots: SlotItem[] }) {
           <EmptyState
             title="هنوز وعده‌ای تعریف نشده"
             description="حداقل دو وعده «ناهار» و «شام» بسازید تا برنامه هفتگی قابل چیدمان باشد."
-            action={<Button onClick={() => openForm(null)} icon={<Plus size={16} />}>افزودن وعده</Button>}
+            action={
+              <Button onClick={() => openForm(null)} icon={<Plus size={16} />}>
+                افزودن وعده
+              </Button>
+            }
           />
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {slots.map((s) => (
-            <article key={s.id} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_1px_3px_rgba(58,45,125,0.04),0_4px_12px_rgba(58,45,125,0.06)]">
+            <article
+              key={s.id}
+              className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_1px_3px_rgba(58,45,125,0.04),0_4px_12px_rgba(58,45,125,0.06)]"
+            >
               <div className="flex items-start justify-between">
                 <div className="grid h-11 w-11 place-items-center rounded-xl bg-[var(--color-brand-50)] text-[var(--color-brand-700)]">
                   <Clock size={19} />
@@ -91,7 +104,13 @@ export function SlotsClient({ slots }: { slots: SlotItem[] }) {
                 {hhmm(s.startTime)} — {hhmm(s.endTime)}
               </p>
 
-              <Button size="sm" variant="secondary" className="mt-4" icon={<Pencil size={13} />} onClick={() => openForm(s)}>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="mt-4"
+                icon={<Pencil size={13} />}
+                onClick={() => openForm(s)}
+              >
                 ویرایش
               </Button>
             </article>
@@ -106,23 +125,41 @@ export function SlotsClient({ slots }: { slots: SlotItem[] }) {
         size="sm"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setOpen(false)}>انصراف</Button>
-            <Button loading={busy} onClick={submit}>ذخیره</Button>
+            <Button variant="ghost" onClick={() => setOpen(false)}>
+              انصراف
+            </Button>
+            <Button loading={busy} onClick={submit}>
+              ذخیره
+            </Button>
           </>
         }
       >
         <div className="space-y-4">
           <Field label="نام وعده" required error={error}>
-            <TextInput value={values.name} onChange={(e) => setValues((p) => ({ ...p, name: e.target.value }))} placeholder="مثلاً ناهار" />
+            <TextInput
+              value={values.name}
+              onChange={(e) => setValues((p) => ({ ...p, name: e.target.value }))}
+              placeholder="مثلاً ناهار"
+            />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="ساعت شروع" required>
-              <TextInput type="time" dir="ltr" value={values.startTime} className="text-right"
-                onChange={(e) => setValues((p) => ({ ...p, startTime: e.target.value }))} />
+              <TextInput
+                type="time"
+                dir="ltr"
+                value={values.startTime}
+                className="text-right"
+                onChange={(e) => setValues((p) => ({ ...p, startTime: e.target.value }))}
+              />
             </Field>
             <Field label="ساعت پایان" required>
-              <TextInput type="time" dir="ltr" value={values.endTime} className="text-right"
-                onChange={(e) => setValues((p) => ({ ...p, endTime: e.target.value }))} />
+              <TextInput
+                type="time"
+                dir="ltr"
+                value={values.endTime}
+                className="text-right"
+                onChange={(e) => setValues((p) => ({ ...p, endTime: e.target.value }))}
+              />
             </Field>
           </div>
           <p className="rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)]/40 p-3 text-[11px] leading-loose text-[var(--color-foreground-muted)]">

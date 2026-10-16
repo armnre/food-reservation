@@ -4,17 +4,31 @@ import React, { useCallback, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
-  UploadCloud, FileSpreadsheet, CheckCircle2, AlertTriangle, XCircle, RefreshCw,
-  ArrowRight, ArrowLeft, Download, Trash2, ShieldCheck, Table2, Filter,
+  UploadCloud,
+  FileSpreadsheet,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  RefreshCw,
+  ArrowRight,
+  ArrowLeft,
+  Download,
+  Trash2,
+  ShieldCheck,
+  Table2,
+  Filter,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge, Field, Select, Switch, TextInput } from '@/components/ui/data';
 import { Progress, ConfirmDialog, useToast, EmptyState } from '@/components/ui/feedback';
 import { PageHeader } from '@/components/layout/app-shell';
 import {
-  previewStudentImportAction, commitStudentImportAction,
-  downloadStudentTemplateAction, downloadErrorReportAction,
-  type PreviewDto, type PreviewRowDto,
+  previewStudentImportAction,
+  commitStudentImportAction,
+  downloadStudentTemplateAction,
+  downloadErrorReportAction,
+  type PreviewDto,
+  type PreviewRowDto,
 } from '@/server/actions/student-actions';
 import { saveAsBase64, fileToBase64 } from '@/lib/download';
 import { toPersianDigits } from '@/lib/validation';
@@ -41,7 +55,10 @@ const FIELD_OPTIONS = [
   { value: 'mobile', label: 'موبایل' },
 ];
 
-const KIND_BADGE: Record<string, { label: string; variant: 'success' | 'info' | 'warning' | 'danger'; icon: React.ReactNode }> = {
+const KIND_BADGE: Record<
+  string,
+  { label: string; variant: 'success' | 'info' | 'warning' | 'danger'; icon: React.ReactNode }
+> = {
   NEW: { label: 'جدید', variant: 'success', icon: <CheckCircle2 size={12} /> },
   UPDATE: { label: 'به‌روزرسانی', variant: 'info', icon: <RefreshCw size={12} /> },
   CONFLICT: { label: 'تعارض', variant: 'warning', icon: <AlertTriangle size={12} /> },
@@ -68,7 +85,12 @@ export default function ImportPage() {
   const [confirmCommit, setConfirmCommit] = useState(false);
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [result, setResult] = useState<{ created: number; updated: number; skipped: number; deactivated: number } | null>(null);
+  const [result, setResult] = useState<{
+    created: number;
+    updated: number;
+    skipped: number;
+    deactivated: number;
+  } | null>(null);
 
   const handleFile = useCallback(async (f: File) => {
     if (!f.name.toLowerCase().endsWith('.xlsx')) {
@@ -105,7 +127,10 @@ export default function ImportPage() {
     const base64 = await fileToBase64(file);
     const res = await previewStudentImportAction({ fileName: file.name, base64, columnMap });
     setLoading(false);
-    if (!res.ok) { setError(res.error); return; }
+    if (!res.ok) {
+      setError(res.error);
+      return;
+    }
     setPreview(res.preview);
     setStep(2);
   }
@@ -168,7 +193,9 @@ export default function ImportPage() {
                   active ? 'bg-[var(--color-brand-50)]/70' : done ? 'bg-transparent' : 'opacity-55'
                 }`}
               >
-                {i > 0 && <div className="absolute right-0 top-0 hidden h-full w-px bg-[var(--color-border)] md:block" />}
+                {i > 0 && (
+                  <div className="absolute right-0 top-0 hidden h-full w-px bg-[var(--color-border)] md:block" />
+                )}
                 <div
                   className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-bold transition-colors ${
                     done
@@ -182,7 +209,9 @@ export default function ImportPage() {
                 </div>
                 <div className="min-w-0">
                   <p className="truncate text-[13px] font-semibold">
-                    <span className="ml-1 text-[var(--color-foreground-muted)]">{toPersianDigits(i + 1)}.</span>
+                    <span className="ml-1 text-[var(--color-foreground-muted)]">
+                      {toPersianDigits(i + 1)}.
+                    </span>
                     {s.title}
                   </p>
                   <p className="truncate text-[11px] text-[var(--color-foreground-muted)]">{s.subtitle}</p>
@@ -212,7 +241,10 @@ export default function ImportPage() {
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
               <div className="lg:col-span-2">
                 <div
-                  onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setDragging(true);
+                  }}
                   onDragLeave={() => setDragging(false)}
                   onDrop={(e) => {
                     e.preventDefault();
@@ -236,17 +268,24 @@ export default function ImportPage() {
                   </div>
                   <h2 className="text-lg font-bold">فایل اکسل را اینجا رها کنید</h2>
                   <p className="mt-2 max-w-sm text-sm leading-loose text-[var(--color-foreground-muted)]">
-                    یا از دکمه زیر استفاده کنید. فرمت مجاز <span className="font-semibold">.xlsx</span> با حداکثر
-                    {' '}{toPersianDigits(10000)} ردیف و {toPersianDigits(5)} مگابایت.
+                    یا از دکمه زیر استفاده کنید. فرمت مجاز <span className="font-semibold">.xlsx</span> با
+                    حداکثر {toPersianDigits(10000)} ردیف و {toPersianDigits(5)} مگابایت.
                   </p>
                   <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
                     <Button icon={<FileSpreadsheet size={16} />} onClick={() => fileInput.current?.click()}>
                       انتخاب فایل
                     </Button>
-                    <Button variant="secondary" icon={<Download size={16} />} onClick={async () => {
-                      const res = await downloadStudentTemplateAction();
-                      if (res.ok) { saveAsBase64(res.base64, 'قالب-دانشجویان.xlsx'); toast.push({ kind: 'info', title: 'قالب نمونه دانلود شد' }); }
-                    }}>
+                    <Button
+                      variant="secondary"
+                      icon={<Download size={16} />}
+                      onClick={async () => {
+                        const res = await downloadStudentTemplateAction();
+                        if (res.ok) {
+                          saveAsBase64(res.base64, 'قالب-دانشجویان.xlsx');
+                          toast.push({ kind: 'info', title: 'قالب نمونه دانلود شد' });
+                        }
+                      }}
+                    >
                       دانلود قالب نمونه
                     </Button>
                   </div>
@@ -255,13 +294,23 @@ export default function ImportPage() {
                     type="file"
                     accept=".xlsx"
                     className="hidden"
-                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleFile(f);
+                    }}
                   />
                   {file && (
                     <div className="mt-6 flex items-center gap-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-muted)]/50 px-4 py-2.5">
                       <FileSpreadsheet size={16} className="text-[var(--color-brand-700)]" />
                       <span className="text-xs font-medium">{file.name}</span>
-                      <button onClick={() => { setFile(null); setPreview(null); }} className="text-[var(--color-foreground-muted)] hover:text-rose-500" aria-label="حذف فایل">
+                      <button
+                        onClick={() => {
+                          setFile(null);
+                          setPreview(null);
+                        }}
+                        className="text-[var(--color-foreground-muted)] hover:text-rose-500"
+                        aria-label="حذف فایل"
+                      >
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -283,13 +332,19 @@ export default function ImportPage() {
                 </p>
                 <ul className="mt-4 space-y-2">
                   {['شماره دانشجویی', 'کد ملی', 'نام', 'نام خانوادگی', 'وضعیت'].map((h) => (
-                    <li key={h} className="flex items-center gap-2 rounded-lg border border-[var(--color-border-subtle)] px-3 py-2 text-xs">
+                    <li
+                      key={h}
+                      className="flex items-center gap-2 rounded-lg border border-[var(--color-border-subtle)] px-3 py-2 text-xs"
+                    >
                       <CheckCircle2 size={13} className="text-emerald-500" />
                       {h}
                     </li>
                   ))}
                   {['دانشکده', 'رشته', 'سال ورود', 'موبایل'].map((h) => (
-                    <li key={h} className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-[var(--color-foreground-muted)]">
+                    <li
+                      key={h}
+                      className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-[var(--color-foreground-muted)]"
+                    >
                       <span className="h-3.5 w-3.5 rounded-full border border-[var(--color-border)]" />
                       {h} <span className="text-[10px]">(اختیاری)</span>
                     </li>
@@ -322,7 +377,11 @@ export default function ImportPage() {
                       value={columnMap[i] ?? ''}
                       onChange={(e) => setColumnMap((p) => ({ ...p, [i]: e.target.value || null }))}
                     >
-                      {FIELD_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      {FIELD_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
                     </Select>
                   </div>
                 ))}
@@ -344,13 +403,20 @@ export default function ImportPage() {
             <div className="space-y-5">
               <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-5">
                 {[
-                  { label: 'کل ردیف‌ها', value: preview.counts.total, tone: 'bg-[var(--color-muted)] text-[var(--color-foreground)]' },
+                  {
+                    label: 'کل ردیف‌ها',
+                    value: preview.counts.total,
+                    tone: 'bg-[var(--color-muted)] text-[var(--color-foreground)]',
+                  },
                   { label: 'جدید', value: preview.counts.create, tone: 'bg-emerald-50 text-emerald-700' },
                   { label: 'به‌روزرسانی', value: preview.counts.update, tone: 'bg-sky-50 text-sky-700' },
                   { label: 'تعارض', value: preview.counts.conflict, tone: 'bg-amber-50 text-amber-800' },
                   { label: 'خطا', value: preview.counts.error, tone: 'bg-rose-50 text-rose-700' },
                 ].map((c) => (
-                  <div key={c.label} className={`rounded-xl border border-[var(--color-border)] p-4 ${c.tone}`}>
+                  <div
+                    key={c.label}
+                    className={`rounded-xl border border-[var(--color-border)] p-4 ${c.tone}`}
+                  >
                     <p className="text-[11px] opacity-75">{c.label}</p>
                     <p className="mt-1 text-2xl font-bold tabular-nums">{toPersianDigits(c.value)}</p>
                   </div>
@@ -359,28 +425,49 @@ export default function ImportPage() {
 
               <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]">
                 <div className="flex flex-wrap items-center gap-3 border-b border-[var(--color-border-subtle)] px-4 py-3">
-                  <Button size="sm" variant={onlyErrors ? 'primary' : 'secondary'} icon={<Filter size={14} />} onClick={() => setOnlyErrors((v) => !v)}>
+                  <Button
+                    size="sm"
+                    variant={onlyErrors ? 'primary' : 'secondary'}
+                    icon={<Filter size={14} />}
+                    onClick={() => setOnlyErrors((v) => !v)}
+                  >
                     فقط خطاها و تعارض‌ها
                   </Button>
-                  <Button size="sm" variant="secondary" icon={<Download size={14} />} onClick={async () => {
-                    const res = await downloadErrorReportAction(preview.rows.map((r) => ({
-                      rowNumber: r.rowNumber, kind: r.kind, studentNumber: r.studentNumber,
-                      nationalCodeMasked: r.nationalCodeMasked, errors: r.errors, warnings: r.warnings,
-                    })));
-                    saveAsBase64(res.base64, 'گزارش-خطاهای-ایمپورت.xlsx');
-                    toast.push({ kind: 'info', title: 'گزارش خطاها دانلود شد' });
-                  }}>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    icon={<Download size={14} />}
+                    onClick={async () => {
+                      const res = await downloadErrorReportAction(
+                        preview.rows.map((r) => ({
+                          rowNumber: r.rowNumber,
+                          kind: r.kind,
+                          studentNumber: r.studentNumber,
+                          nationalCodeMasked: r.nationalCodeMasked,
+                          errors: r.errors,
+                          warnings: r.warnings,
+                        })),
+                      );
+                      saveAsBase64(res.base64, 'گزارش-خطاهای-ایمپورت.xlsx');
+                      toast.push({ kind: 'info', title: 'گزارش خطاها دانلود شد' });
+                    }}
+                  >
                     دانلود گزارش خطا
                   </Button>
                   <span className="mr-auto text-xs text-[var(--color-foreground-muted)]">
                     {toPersianDigits(visibleRows.length)} ردیف نمایش داده شده
-                    {preview.elapsedMs > 0 && <> — پردازش در {toPersianDigits(Math.round(preview.elapsedMs / 100) / 10)} ثانیه</>}
+                    {preview.elapsedMs > 0 && (
+                      <> — پردازش در {toPersianDigits(Math.round(preview.elapsedMs / 100) / 10)} ثانیه</>
+                    )}
                   </span>
                 </div>
 
                 <div className="max-h-[520px] overflow-auto">
                   {visibleRows.length === 0 ? (
-                    <EmptyState title="ردیفی برای نمایش نیست" description="همه ردیف‌ها معتبرند یا فیلتر فعال است." />
+                    <EmptyState
+                      title="ردیفی برای نمایش نیست"
+                      description="همه ردیف‌ها معتبرند یا فیلتر فعال است."
+                    />
                   ) : (
                     <table className="w-full text-right text-xs">
                       <thead className="sticky top-0 z-10 bg-[var(--color-muted)]/95 backdrop-blur">
@@ -404,7 +491,9 @@ export default function ImportPage() {
                             row={r}
                             showConfirm={preview.rows.some((x) => x.kind === 'CONFLICT')}
                             confirmed={overrides[r.rowNumber] === true}
-                            onToggleConfirm={() => setOverrides((p) => ({ ...p, [r.rowNumber]: !p[r.rowNumber] }))}
+                            onToggleConfirm={() =>
+                              setOverrides((p) => ({ ...p, [r.rowNumber]: !p[r.rowNumber] }))
+                            }
                           />
                         ))}
                       </tbody>
@@ -477,7 +566,9 @@ export default function ImportPage() {
                       { label: 'غیرفعال‌شده', value: result.deactivated, cls: 'text-amber-600' },
                     ].map((c) => (
                       <div key={c.label} className="rounded-xl border border-[var(--color-border)] p-3.5">
-                        <p className={`text-2xl font-bold tabular-nums ${c.cls}`}>{toPersianDigits(c.value)}</p>
+                        <p className={`text-2xl font-bold tabular-nums ${c.cls}`}>
+                          {toPersianDigits(c.value)}
+                        </p>
                         <p className="mt-1 text-[11px] text-[var(--color-foreground-muted)]">{c.label}</p>
                       </div>
                     ))}
@@ -485,10 +576,20 @@ export default function ImportPage() {
 
                   <div className="mt-7 flex flex-wrap justify-center gap-2.5">
                     <Button onClick={() => router.push('/vice/students')}>مشاهده دانشجویان</Button>
-                    <Button variant="secondary" onClick={() => router.push('/vice/imports')}>تاریخچه ایمپورت‌ها</Button>
-                    <Button variant="ghost" onClick={() => {
-                      setStep(0); setFile(null); setPreview(null); setResult(null); setProgress(0); setOverrides({});
-                    }}>
+                    <Button variant="secondary" onClick={() => router.push('/vice/imports')}>
+                      تاریخچه ایمپورت‌ها
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        setStep(0);
+                        setFile(null);
+                        setPreview(null);
+                        setResult(null);
+                        setProgress(0);
+                        setOverrides({});
+                      }}
+                    >
                       ایمپورت فایل جدید
                     </Button>
                   </div>
@@ -516,14 +617,20 @@ export default function ImportPage() {
         confirmLabel="می‌پذیرم و فعال می‌کنم"
         danger
         requireTypedWord="غیرفعال‌سازی"
-        onConfirm={() => { setDeactivateMissing(true); setConfirmDeactivate(false); }}
+        onConfirm={() => {
+          setDeactivateMissing(true);
+          setConfirmDeactivate(false);
+        }}
       />
     </div>
   );
 }
 
 function PreviewRow({
-  row, showConfirm, confirmed, onToggleConfirm,
+  row,
+  showConfirm,
+  confirmed,
+  onToggleConfirm,
 }: {
   row: PreviewRowDto;
   showConfirm: boolean;
@@ -533,12 +640,20 @@ function PreviewRow({
   const badge = KIND_BADGE[row.kind] ?? KIND_BADGE.ERROR;
   return (
     <tr className="border-b border-[var(--color-border-subtle)] last:border-0 hover:bg-[var(--color-muted)]/40">
-      <td className="px-3 py-2.5 tabular-nums text-[var(--color-foreground-muted)]">{toPersianDigits(row.rowNumber)}</td>
-      <td className="px-3 py-2.5">
-        <Badge variant={badge.variant}>{badge.icon} {badge.label}</Badge>
+      <td className="px-3 py-2.5 tabular-nums text-[var(--color-foreground-muted)]">
+        {toPersianDigits(row.rowNumber)}
       </td>
-      <td className="px-3 py-2.5 font-mono" dir="ltr">{row.studentNumber || '—'}</td>
-      <td className="px-3 py-2.5">{row.firstName} {row.lastName}</td>
+      <td className="px-3 py-2.5">
+        <Badge variant={badge.variant}>
+          {badge.icon} {badge.label}
+        </Badge>
+      </td>
+      <td className="px-3 py-2.5 font-mono" dir="ltr">
+        {row.studentNumber || '—'}
+      </td>
+      <td className="px-3 py-2.5">
+        {row.firstName} {row.lastName}
+      </td>
       <td className="px-3 py-2.5 font-mono" dir="ltr">
         {row.nationalCodeMasked}
         {row.existingNationalCodeMasked && (

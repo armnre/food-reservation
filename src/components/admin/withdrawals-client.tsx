@@ -22,7 +22,10 @@ export interface WithdrawalItem {
   bankReference?: string | null;
 }
 
-const STATUS_META: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' | 'muted' | 'info' }> = {
+const STATUS_META: Record<
+  string,
+  { label: string; variant: 'success' | 'warning' | 'danger' | 'muted' | 'info' }
+> = {
   PENDING: { label: 'در انتظار', variant: 'warning' },
   APPROVED: { label: 'تأییدشده', variant: 'success' },
   REJECTED: { label: 'رد شده', variant: 'danger' },
@@ -30,7 +33,8 @@ const STATUS_META: Record<string, { label: string; variant: 'success' | 'warning
 };
 
 export function WithdrawalsClient({
-  items, initialStatus,
+  items,
+  initialStatus,
 }: {
   items: WithdrawalItem[];
   initialStatus: string;
@@ -61,13 +65,23 @@ export function WithdrawalsClient({
           </div>
           <div className="min-w-0">
             <p className="truncate text-xs font-semibold">{r.userName}</p>
-            <p className="font-mono text-[10px] text-[var(--color-foreground-muted)]" dir="ltr">{r.userUsername}</p>
+            <p className="font-mono text-[10px] text-[var(--color-foreground-muted)]" dir="ltr">
+              {r.userUsername}
+            </p>
           </div>
         </div>
       ),
     },
-    { key: 'amount', header: 'مبلغ', render: (r) => <span className="font-bold tabular-nums">{formatToman(r.amountRials)}</span> },
-    { key: 'createdAt', header: 'تاریخ درخواست', render: (r) => <span className="text-[11px] text-[var(--color-foreground-muted)]">{r.createdAt}</span> },
+    {
+      key: 'amount',
+      header: 'مبلغ',
+      render: (r) => <span className="font-bold tabular-nums">{formatToman(r.amountRials)}</span>,
+    },
+    {
+      key: 'createdAt',
+      header: 'تاریخ درخواست',
+      render: (r) => <span className="text-[11px] text-[var(--color-foreground-muted)]">{r.createdAt}</span>,
+    },
     {
       key: 'status',
       header: 'وضعیت',
@@ -79,18 +93,24 @@ export function WithdrawalsClient({
     {
       key: 'actions',
       header: 'عملیات',
-      render: (r) => (
+      render: (r) =>
         r.status === 'PENDING' ? (
           <div className="flex items-center gap-1">
             <button
-              onClick={(e) => { e.stopPropagation(); setConfirmApprove(r); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setConfirmApprove(r);
+              }}
               className="rounded-lg border border-emerald-200 bg-emerald-50 p-1.5 text-emerald-600 transition-colors hover:bg-emerald-100"
               aria-label="تأیید"
             >
               <CheckCircle2 size={14} />
             </button>
             <button
-              onClick={(e) => { e.stopPropagation(); setConfirmReject(r); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setConfirmReject(r);
+              }}
               className="rounded-lg border border-rose-200 bg-rose-50 p-1.5 text-rose-500 transition-colors hover:bg-rose-100"
               aria-label="رد"
             >
@@ -99,8 +119,7 @@ export function WithdrawalsClient({
           </div>
         ) : (
           <span className="text-[11px] text-[var(--color-foreground-muted)]">—</span>
-        )
-      ),
+        ),
     },
   ];
 
@@ -109,7 +128,14 @@ export function WithdrawalsClient({
       <div className="mb-4 flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
         <div className="w-52">
           <Field label="وضعیت" htmlFor="wstatus">
-            <Select id="wstatus" value={status} onChange={(e) => { setStatus(e.target.value); navigate(e.target.value); }}>
+            <Select
+              id="wstatus"
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value);
+                navigate(e.target.value);
+              }}
+            >
               <option value="ALL">همه</option>
               <option value="PENDING">در انتظار</option>
               <option value="APPROVED">تأییدشده</option>
@@ -118,8 +144,14 @@ export function WithdrawalsClient({
           </Field>
         </div>
         <div className="mr-auto flex gap-4 text-xs">
-          <span className="flex items-center gap-1.5"><Clock size={13} className="text-amber-500" /> {toPersianDigits(items.filter((i) => i.status === 'PENDING').length)} در انتظار</span>
-          <span className="flex items-center gap-1.5"><CheckCircle2 size={13} className="text-emerald-500" /> {toPersianDigits(items.filter((i) => i.status === 'APPROVED').length)} تأییدشده</span>
+          <span className="flex items-center gap-1.5">
+            <Clock size={13} className="text-amber-500" />{' '}
+            {toPersianDigits(items.filter((i) => i.status === 'PENDING').length)} در انتظار
+          </span>
+          <span className="flex items-center gap-1.5">
+            <CheckCircle2 size={13} className="text-emerald-500" />{' '}
+            {toPersianDigits(items.filter((i) => i.status === 'APPROVED').length)} تأییدشده
+          </span>
         </div>
       </div>
 
@@ -176,7 +208,11 @@ export function WithdrawalsClient({
           setBusy(false);
           setConfirmReject(null);
           if (res.ok) {
-            toast.push({ kind: 'success', title: 'درخواست رد شد', description: 'مبلغ به کیف پول کاربر بازگردانده شد' });
+            toast.push({
+              kind: 'success',
+              title: 'درخواست رد شد',
+              description: 'مبلغ به کیف پول کاربر بازگردانده شد',
+            });
             router.refresh();
           } else {
             toast.push({ kind: 'error', title: 'خطا', description: res.error });

@@ -60,9 +60,11 @@ export function PasswordInput({ label, error, showStrength, className = '', ...p
         <div className="mt-2 h-1.5 w-full rounded-full bg-border overflow-hidden">
           <div
             className={`h-full rounded-full transition-all duration-300 ${
-              props.value.length < 6 ? 'w-1/4 bg-rose-400' :
-              props.value.length < 8 ? 'w-2/4 bg-amber-400' :
-              'w-full bg-emerald-500'
+              props.value.length < 6
+                ? 'w-1/4 bg-rose-400'
+                : props.value.length < 8
+                  ? 'w-2/4 bg-amber-400'
+                  : 'w-full bg-emerald-500'
             }`}
           />
         </div>

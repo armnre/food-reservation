@@ -15,9 +15,21 @@ export function MobileNav({ role }: { role: string }) {
     { href: `${base}/wallet`, label: 'کیف پول', Icon: Wallet },
     { href: '/profile', label: 'پروفایل', Icon: UserRound },
   ];
-  return <nav aria-label="ناوبری پایین صفحه" className="mobile-bottom-nav">
-    {links.map(({ href, label, Icon }) => <Link key={href} href={href} aria-current={pathname === href ? 'page' : undefined} className={pathname === href ? 'active' : ''}>
-      <span><Icon size={21} strokeWidth={pathname === href ? 2.3 : 1.7} /></span><small>{label}</small>
-    </Link>)}
-  </nav>;
+  return (
+    <nav aria-label="ناوبری پایین صفحه" className="mobile-bottom-nav">
+      {links.map(({ href, label, Icon }) => (
+        <Link
+          key={href}
+          href={href}
+          aria-current={pathname === href ? 'page' : undefined}
+          className={pathname === href ? 'active' : ''}
+        >
+          <span>
+            <Icon size={21} strokeWidth={pathname === href ? 2.3 : 1.7} />
+          </span>
+          <small>{label}</small>
+        </Link>
+      ))}
+    </nav>
+  );
 }

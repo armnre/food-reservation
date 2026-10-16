@@ -27,9 +27,11 @@ describe('ناوردایی دفتر کل', () => {
 
     // ۱۲ کاربر و ۶ آیتم منو
     const students = await Promise.all(Array.from({ length: 12 }, () => createStudent()));
-    const items = await Promise.all(Array.from({ length: 6 }, (_, i) =>
-      createMenuItemWithPrice({ priceRials: 20_000 + i * 10_000, capacity: 30 }),
-    ));
+    const items = await Promise.all(
+      Array.from({ length: 6 }, (_, i) =>
+        createMenuItemWithPrice({ priceRials: 20_000 + i * 10_000, capacity: 30 }),
+      ),
+    );
     for (const s of students) await depositUserWallet(s.userId, 300_000);
 
     // وضعیت: کدام کاربر رزرو فعال کدام آیتم را دارد
@@ -43,18 +45,29 @@ describe('ناوردایی دفتر کل', () => {
       const roll = rng();
 
       if (!has && roll < 0.6) {
-        const r = await createReservation({ userId: s.userId, menuItemId: item.itemId, idempotencyKey: randomUUID(), actor: testActor(s.userId) });
+        const r = await createReservation({
+          userId: s.userId,
+          menuItemId: item.itemId,
+          idempotencyKey: randomUUID(),
+          actor: testActor(s.userId),
+        });
         if (r.ok && !r.idempotent) active.set(key, r.reservation.id);
       } else if (has && roll >= 0.6) {
         const rid = active.get(key) as string;
-        const c = await cancelReservation({ userId: s.userId, reservationId: rid, actor: testActor(s.userId) });
+        const c = await cancelReservation({
+          userId: s.userId,
+          reservationId: rid,
+          actor: testActor(s.userId),
+        });
         if (c.ok) active.delete(key);
       }
       // در غیر این صورت: عملی انجام نشد (شبیه کاربر بیکار)
     }
 
     // (الف) جمع کل دفتر = صفر — هر جریان کاربر↔سیستمی جفت است
-    const total = await db.execute<{ sum: string | null }>(sql`SELECT COALESCE(SUM(amount_rials), 0)::text AS sum FROM ledger_entries`);
+    const total = await db.execute<{ sum: string | null }>(
+      sql`SELECT COALESCE(SUM(amount_rials), 0)::text AS sum FROM ledger_entries`,
+    );
     expect(Number(total.rows[0].sum)).toBe(0);
 
     // (ب) موجودی هر کیف = جمع ردیف‌هایش

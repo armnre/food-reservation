@@ -39,7 +39,10 @@ describe('کنترل دسترسی تغییر وضعیت دانشجو', () => {
     // دانشجو غیرفعال شده
     const [studentRow] = await db.select().from(users).where(eq(users.id, student.userId));
     expect(studentRow.isActive).toBe(false);
-    const [profile] = await db.select().from(studentProfiles).where(eq(studentProfiles.userId, student.userId));
+    const [profile] = await db
+      .select()
+      .from(studentProfiles)
+      .where(eq(studentProfiles.userId, student.userId));
     expect(profile.status).toBe('ON_LEAVE');
   });
 
@@ -75,8 +78,10 @@ describe('کنترل دسترسی تغییر وضعیت دانشجو', () => {
 
   it('فهرست بیش از ۵۰۰ هدف رد می‌شود', async () => {
     const vice = await createStaffUser('VICE_STUDENT');
-    const fake = Array.from({ length: 501 }, (_, i) =>
-      `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`);
+    const fake = Array.from(
+      { length: 501 },
+      (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`,
+    );
     const res = await setStudentStatus({
       actor: { id: vice.userId, role: 'VICE_STUDENT' },
       userIds: fake,

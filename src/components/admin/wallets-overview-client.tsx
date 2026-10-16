@@ -30,12 +30,18 @@ const OWNER_LABELS: Record<string, string> = {
 };
 
 const ENTRY_LABELS: Record<string, string> = {
-  DEPOSIT: 'واریز', PURCHASE: 'خرید', REFUND: 'بازگشت',
-  WITHDRAWAL: 'برداشت', ADJUSTMENT: 'اصلاح', SALE: 'فروش',
+  DEPOSIT: 'واریز',
+  PURCHASE: 'خرید',
+  REFUND: 'بازگشت',
+  WITHDRAWAL: 'برداشت',
+  ADJUSTMENT: 'اصلاح',
+  SALE: 'فروش',
 };
 
 export function WalletsOverviewClient({
-  system, totalUserBalances, ledger,
+  system,
+  totalUserBalances,
+  ledger,
 }: {
   system: SystemWallet[];
   totalUserBalances: number;
@@ -91,7 +97,9 @@ export function WalletsOverviewClient({
           </p>
         </div>
         {ledger.length === 0 ? (
-          <p className="px-5 py-10 text-center text-xs text-[var(--color-foreground-muted)]">تراکنشی ثبت نشده است</p>
+          <p className="px-5 py-10 text-center text-xs text-[var(--color-foreground-muted)]">
+            تراکنشی ثبت نشده است
+          </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-right text-xs">
@@ -120,8 +128,11 @@ export function WalletsOverviewClient({
                         </Badge>
                       </td>
                       <td className="px-5 py-2.5 font-medium">{e.userName ?? '—'}</td>
-                      <td className={`px-5 py-2.5 font-bold tabular-nums ${isIn ? 'text-emerald-600' : 'text-rose-500'}`}>
-                        {isIn ? '+' : '−'}{formatToman(Math.abs(e.amountRials))}
+                      <td
+                        className={`px-5 py-2.5 font-bold tabular-nums ${isIn ? 'text-emerald-600' : 'text-rose-500'}`}
+                      >
+                        {isIn ? '+' : '−'}
+                        {formatToman(Math.abs(e.amountRials))}
                       </td>
                       <td className="max-w-[200px] truncate px-5 py-2.5 text-[var(--color-foreground-muted)]">
                         {e.description ?? '—'}

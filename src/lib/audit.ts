@@ -28,6 +28,26 @@ export type AuditAction =
   | 'import:undone'
   | 'import:conflict_overridden'
   | 'customer_group:updated'
+  /** فاز ۱-۶ — واریز وجه درگاه برای کاربری که در فاصلهٔ پرداخت غیرفعال شده */
+  | 'payment:completed_for_inactive_user'
+  /** فاز ۲ — تنظیمات سامانه (قبل/بعد ثبت می‌شود) */
+  | 'settings:updated'
+  /** فاز ۲ — «تمام شد» روی آیتم منو و بازپرداخت خودکار رزروها */
+  | 'menu_item:sold_out'
+  | 'menu_item:bulk_refunded'
+  /** فاز ۲ — «لغو وعده» روی منو و بازپرداخت خودکار رزروها */
+  | 'menu:meal_cancelled'
+  | 'menu:bulk_refunded'
+  /** فاز ۲ — لغو دسته‌ای رزروها با بازپرداخت کامل */
+  | 'reservation:bulk_cancelled'
+  /** فاز ۳ — صدور مجدد QR (nonce جدید، باطل شدن QR قبلی) */
+  | 'qr:reissued'
+  /** فاز ۳ — ثبت هر اسکن (موفق یا ناموفق) در ticket_scans */
+  | 'ticket:scanned'
+  /** فاز ۳ — تعارض همگام‌سازی آفلاین که نیاز به بررسی دارد */
+  | 'ticket:offline_conflict'
+  /** فاز ۳ — چرخش کلیدهای رمزنگاری */
+  | 'keys:rotated'
   | 'food:created'
   | 'food:updated'
   | 'food:activated'

@@ -6,13 +6,16 @@ import { PageHeader } from '@/components/layout/app-shell';
 import { Badge } from '@/components/ui/data';
 import { SessionsClient } from '@/components/profile/sessions-client';
 
-
 export const dynamic = 'force-dynamic';
 
 export default async function ProfilePage() {
   const ctx = await requireRole(
-    ROLES.STUDENT, ROLES.STAFF, ROLES.VICE_STUDENT,
-    ROLES.NUTRITION_MANAGER, ROLES.CAFETERIA_OPERATOR, ROLES.SUPER_ADMIN,
+    ROLES.STUDENT,
+    ROLES.STAFF,
+    ROLES.VICE_STUDENT,
+    ROLES.NUTRITION_MANAGER,
+    ROLES.CAFETERIA_OPERATOR,
+    ROLES.SUPER_ADMIN,
   );
   const sessions = await listMySessions();
 
@@ -28,7 +31,9 @@ export default async function ProfilePage() {
             </div>
             <div className="min-w-0">
               <p className="truncate text-base font-bold">{ctx.user.displayName}</p>
-              <p className="mt-1 font-mono text-xs text-[var(--color-foreground-muted)]" dir="ltr">{ctx.user.username}</p>
+              <p className="mt-1 font-mono text-xs text-[var(--color-foreground-muted)]" dir="ltr">
+                {ctx.user.username}
+              </p>
               <div className="mt-2">
                 <Badge variant="info">{roleLabel(ctx.user.role)}</Badge>
               </div>
@@ -42,7 +47,10 @@ export default async function ProfilePage() {
               ['وضعیت حساب', ctx.user.isActive ? 'فعال' : 'غیرفعال'],
               ['وضعیت رمز', ctx.user.mustChangePassword ? 'نیاز به تعویض' : 'تنظیم‌شده'],
             ].map(([k, v]) => (
-              <div key={k} className="flex items-center justify-between rounded-lg border border-[var(--color-border-subtle)] px-3.5 py-2.5">
+              <div
+                key={k}
+                className="flex items-center justify-between rounded-lg border border-[var(--color-border-subtle)] px-3.5 py-2.5"
+              >
                 <dt className="text-xs text-[var(--color-foreground-muted)]">{k}</dt>
                 <dd className="text-xs font-semibold">{v}</dd>
               </div>

@@ -4,7 +4,14 @@ import { db, pool } from '@/db';
 import { reservations, menuItems } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { createReservation, cancelReservation, signQrToken } from '@/server/services/reservation';
-import { createStudent, createMenuItemWithPrice, depositUserWallet, getWalletBalance, testActor, closePool } from './helpers';
+import {
+  createStudent,
+  createMenuItemWithPrice,
+  depositUserWallet,
+  getWalletBalance,
+  testActor,
+  closePool,
+} from './helpers';
 
 /**
  * فاز ۱-۲ — باگ «رزرو مجدد پس از لغو» و idempotency درست.
@@ -17,7 +24,12 @@ describe('جریان رزرو — لغو و رزرو مجدد', () => {
     await depositUserWallet(userId, 500_000);
 
     // رزرو اول
-    const r1 = await createReservation({ userId, menuItemId: itemId, idempotencyKey: randomUUID(), actor: testActor(userId) });
+    const r1 = await createReservation({
+      userId,
+      menuItemId: itemId,
+      idempotencyKey: randomUUID(),
+      actor: testActor(userId),
+    });
     expect(r1.ok).toBe(true);
     if (!r1.ok) return;
     expect(r1.reservation.status).toBe('CONFIRMED');
@@ -31,7 +43,12 @@ describe('جریان رزرو — لغو و رزرو مجدد', () => {
     expect(item1.reservedCount).toBe(0);
 
     // رزرو مجدد — باید رزرو «جدید» ساخته شود نه بازگشت رزرو لغوشده (باگ قبلی)
-    const r2 = await createReservation({ userId, menuItemId: itemId, idempotencyKey: randomUUID(), actor: testActor(userId) });
+    const r2 = await createReservation({
+      userId,
+      menuItemId: itemId,
+      idempotencyKey: randomUUID(),
+      actor: testActor(userId),
+    });
     expect(r2.ok).toBe(true);
     if (!r2.ok) return;
     expect(r2.idempotent).toBe(false); // رزرو جدید، نه idempotent
@@ -56,8 +73,18 @@ describe('جریان رزرو — لغو و رزرو مجدد', () => {
     await depositUserWallet(userId, 200_000);
 
     const key = randomUUID();
-    const r1 = await createReservation({ userId, menuItemId: itemId, idempotencyKey: key, actor: testActor(userId) });
-    const r2 = await createReservation({ userId, menuItemId: itemId, idempotencyKey: key, actor: testActor(userId) });
+    const r1 = await createReservation({
+      userId,
+      menuItemId: itemId,
+      idempotencyKey: key,
+      actor: testActor(userId),
+    });
+    const r2 = await createReservation({
+      userId,
+      menuItemId: itemId,
+      idempotencyKey: key,
+      actor: testActor(userId),
+    });
     expect(r1.ok && r2.ok).toBe(true);
     if (!(r1.ok && r2.ok)) return;
     expect(r2.idempotent).toBe(true);
@@ -73,8 +100,18 @@ describe('جریان رزرو — لغو و رزرو مجدد', () => {
     const { itemId, priceRials } = await createMenuItemWithPrice({ priceRials: 90_000 });
     await depositUserWallet(userId, 200_000);
 
-    const r1 = await createReservation({ userId, menuItemId: itemId, idempotencyKey: randomUUID(), actor: testActor(userId) });
-    const r2 = await createReservation({ userId, menuItemId: itemId, idempotencyKey: randomUUID(), actor: testActor(userId) });
+    const r1 = await createReservation({
+      userId,
+      menuItemId: itemId,
+      idempotencyKey: randomUUID(),
+      actor: testActor(userId),
+    });
+    const r2 = await createReservation({
+      userId,
+      menuItemId: itemId,
+      idempotencyKey: randomUUID(),
+      actor: testActor(userId),
+    });
     expect(r1.ok && r2.ok).toBe(true);
     if (!(r1.ok && r2.ok)) return;
     expect(r2.idempotent).toBe(true);
@@ -87,7 +124,12 @@ describe('جریان رزرو — لغو و رزرو مجدد', () => {
     const { itemId } = await createMenuItemWithPrice({ priceRials: 500_000 });
     await depositUserWallet(userId, 100_000);
 
-    const r = await createReservation({ userId, menuItemId: itemId, idempotencyKey: randomUUID(), actor: testActor(userId) });
+    const r = await createReservation({
+      userId,
+      menuItemId: itemId,
+      idempotencyKey: randomUUID(),
+      actor: testActor(userId),
+    });
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toContain('موجودی');
     expect(await getWalletBalance(userId)).toBe(100_000);

@@ -16,9 +16,15 @@ import { validateIban } from '@/lib/iban';
 export interface PaymentGateway {
   name: string;
   /** ایجاد پرداخت و دریافت URL درگاه */
-  createPayment(input: { paymentId: string; amountRials: number; description: string }): Promise<{ ok: true; redirectUrl: string } | { ok: false; error: string }>;
+  createPayment(input: {
+    paymentId: string;
+    amountRials: number;
+    description: string;
+  }): Promise<{ ok: true; redirectUrl: string } | { ok: false; error: string }>;
   /** تأیید callback درگاه */
-  verifyCallback?(params: Record<string, string>): Promise<{ ok: true; paymentId: string; reference: string } | { ok: false }>;
+  verifyCallback?(
+    params: Record<string, string>,
+  ): Promise<{ ok: true; paymentId: string; reference: string } | { ok: false }>;
 }
 
 /**
@@ -52,7 +58,7 @@ export const zarinpalGateway: PaymentGateway = {
         callback_url: `${appUrl}/api/payments/zarinpal/callback?paymentId=${input.paymentId}`,
       }),
     });
-    const data = await res.json() as { data?: { authority?: string; code?: number }; errors?: unknown };
+    const data = (await res.json()) as { data?: { authority?: string; code?: number }; errors?: unknown };
     const authority = data?.data?.authority;
     if (!authority) return { ok: false, error: 'ایجاد پرداخت در زرین‌پال ناموفق بود' };
     return { ok: true, redirectUrl: `https://www.zarinpal.com/pg/StartPay/${authority}` };
@@ -72,7 +78,7 @@ export const zarinpalGateway: PaymentGateway = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ merchant_id: merchantId, amount: payment.amountRials, authority }),
     });
-    const data = await res.json() as { data?: { code?: number; ref_id?: number } };
+    const data = (await res.json()) as { data?: { code?: number; ref_id?: number } };
     if (data?.data?.code === 100 || data?.data?.code === 101) {
       return { ok: true, paymentId, reference: String(data.data.ref_id ?? authority) };
     }
@@ -88,6 +94,8 @@ export function getGateway(name: string): PaymentGateway {
 
 /* ───────────── درخواست شارژ ───────────── */
 
+import { assertUserEligibleInTx } from './eligibility';
+
 export async function initiateTopUp(input: {
   userId: string;
   amountRials: number;
@@ -98,9 +106,23 @@ export async function initiateTopUp(input: {
     return { ok: false as const, error: 'مبلغ نامعتبر است' };
   }
 
+  // فاز ۱-۶: پیش از ساخت پرداخت، اعتبار کاربر داخل یک تراکنش بررسی می‌شود تا
+  // کاربر غیرفعال نتواند وارد جریان پرداخت شود و پولش بلاتکلیف بماند.
+  try {
+    await db.transaction(async (tx) => {
+      await assertUserEligibleInTx(tx, input.userId, 'topup');
+    });
+  } catch (e) {
+    if (e instanceof BizError) return { ok: false as const, error: e.message };
+    throw e;
+  }
+
   const useZarinpal = process.env.NODE_ENV === 'production' && Boolean(process.env.ZARINPAL_MERCHANT_ID);
   if (process.env.NODE_ENV === 'production' && !useZarinpal) {
-    return { ok: false as const, error: 'درگاه پرداخت بانکی هنوز پیکربندی نشده است. برای شارژ با معاونت دانشجویی هماهنگ کنید.' };
+    return {
+      ok: false as const,
+      error: 'درگاه پرداخت بانکی هنوز پیکربندی نشده است. برای شارژ با معاونت دانشجویی هماهنگ کنید.',
+    };
   }
   const paymentId = randomUUID();
   const gateway = useZarinpal ? getGateway('zarinpal') : getGateway('sandbox');
@@ -111,15 +133,18 @@ export async function initiateTopUp(input: {
   });
   if (!created.ok) return { ok: false as const, error: created.error };
 
-  const [payment] = await db.insert(payments).values({
-    id: paymentId,
-    userId: input.userId,
-    amountRials: input.amountRials,
-    status: 'PENDING',
-    gateway: gateway.name,
-    idempotencyKey: `topup:${paymentId}`,
-    description: input.description ?? 'شارژ کیف پول',
-  }).returning();
+  const [payment] = await db
+    .insert(payments)
+    .values({
+      id: paymentId,
+      userId: input.userId,
+      amountRials: input.amountRials,
+      status: 'PENDING',
+      gateway: gateway.name,
+      idempotencyKey: `topup:${paymentId}`,
+      description: input.description ?? 'شارژ کیف پول',
+    })
+    .returning();
 
   await audit({
     actor: input.actor,
@@ -133,7 +158,9 @@ export async function initiateTopUp(input: {
 }
 
 export async function getPayment(paymentId: string, userId: string) {
-  const rows = await db.select().from(payments)
+  const rows = await db
+    .select()
+    .from(payments)
     .where(and(eq(payments.id, paymentId), eq(payments.userId, userId)))
     .limit(1);
   return rows[0] ?? null;
@@ -161,11 +188,28 @@ export async function completePayment(input: {
 
   try {
     await db.transaction(async (tx) => {
-      const locked = await tx.select().from(payments)
-        .where(eq(payments.id, payment.id))
-        .for('update');
+      const locked = await tx.select().from(payments).where(eq(payments.id, payment.id)).for('update');
       if (locked[0].status !== 'PENDING') {
         throw new BizError('این پرداخت قبلاً پردازش شده است');
+      }
+
+      // فاز ۱-۶ — نکتهٔ مهم مالی: اینجا عمداً کاربر را *بلاک نمی‌کنیم*.
+      // پول توسط درگاه دریافت شده است؛ اگر کاربر در فاصلهٔ پرداخت غیرفعال شده
+      // باشد، واریز به کیف او همچنان انجام می‌شود (وگرنه وجه واقعی گم می‌شود).
+      // در عوض وضعیت با audit ثبت می‌شود تا معاونت بررسی کند.
+      const payerRows = await tx
+        .select({ isActive: users.isActive })
+        .from(users)
+        .where(eq(users.id, payment.userId))
+        .limit(1);
+      if (payerRows[0] && !payerRows[0].isActive) {
+        await audit({
+          actor: input.actor,
+          action: 'payment:completed_for_inactive_user',
+          entityType: 'payment',
+          entityId: payment.id,
+          after: { userId: payment.userId, amountRials: payment.amountRials },
+        });
       }
 
       // دفتر کل دوطرفه — کاربر +مبلغ و تسویه درگاه −مبلغ
@@ -176,12 +220,23 @@ export async function completePayment(input: {
         referenceId: payment.id,
         description: 'شارژ کیف پول از درگاه',
         legs: [
-          { walletId: userWallet.id, amountRials: payment.amountRials, entryType: 'DEPOSIT', description: 'شارژ کیف پول' },
-          { walletId: clearing.id, amountRials: -payment.amountRials, entryType: 'DEPOSIT', description: 'تسویه درگاه پرداخت' },
+          {
+            walletId: userWallet.id,
+            amountRials: payment.amountRials,
+            entryType: 'DEPOSIT',
+            description: 'شارژ کیف پول',
+          },
+          {
+            walletId: clearing.id,
+            amountRials: -payment.amountRials,
+            entryType: 'DEPOSIT',
+            description: 'تسویه درگاه پرداخت',
+          },
         ],
       });
 
-      await tx.update(payments)
+      await tx
+        .update(payments)
         .set({
           status: 'COMPLETED',
           providerReference: input.providerReference,
@@ -213,10 +268,7 @@ export async function completePayment(input: {
   return { ok: true as const, payment: updated[0] };
 }
 
-export async function failPayment(input: {
-  paymentId: string;
-  actor: AuditActor;
-}) {
+export async function failPayment(input: { paymentId: string; actor: AuditActor }) {
   const rows = await db.select().from(payments).where(eq(payments.id, input.paymentId)).limit(1);
   const payment = rows[0];
   if (!payment) return { ok: false as const, error: 'پرداخت یافت نشد' };
@@ -224,7 +276,8 @@ export async function failPayment(input: {
     return { ok: false as const, error: 'وضعیت این پرداخت قابل تغییر نیست' };
   }
 
-  await db.update(payments)
+  await db
+    .update(payments)
     .set({ status: 'FAILED', updatedAt: new Date() })
     .where(eq(payments.id, payment.id));
 
@@ -244,7 +297,9 @@ export async function getWalletLedger(userId: string, limit = 50) {
   const wallet = await db.select().from(wallets).where(eq(wallets.userId, userId)).limit(1);
   if (!wallet[0]) return { wallet: null, entries: [] };
 
-  const entries = await db.select().from(ledgerEntries)
+  const entries = await db
+    .select()
+    .from(ledgerEntries)
     .where(eq(ledgerEntries.walletId, wallet[0].id))
     .orderBy(desc(ledgerEntries.createdAt))
     .limit(limit);
@@ -262,7 +317,9 @@ export async function getWalletLedger(userId: string, limit = 50) {
 }
 
 export async function getMyPayments(userId: string, limit = 20) {
-  const rows = await db.select().from(payments)
+  const rows = await db
+    .select()
+    .from(payments)
     .where(and(eq(payments.userId, userId), isNull(payments.deletedAt)))
     .orderBy(desc(payments.createdAt))
     .limit(limit);
@@ -303,9 +360,10 @@ export async function requestWithdrawal(input: {
 
   try {
     await db.transaction(async (tx) => {
-      const w = await tx.select().from(wallets)
-        .where(eq(wallets.userId, input.userId))
-        .for('update');
+      // فاز ۱-۶: فعال بودن کاربر و وضعیت ACTIVE دانشجو داخل تراکنش برداشت
+      await assertUserEligibleInTx(tx, input.userId, 'withdraw');
+
+      const w = await tx.select().from(wallets).where(eq(wallets.userId, input.userId)).for('update');
       if (!w[0] || w[0].balanceRials < input.amountRials) {
         throw new BizError('موجودی کیف پول کافی نیست');
       }
@@ -317,8 +375,18 @@ export async function requestWithdrawal(input: {
         referenceId: requestId,
         description: 'درخواست برداشت — مسدودسازی مبلغ',
         legs: [
-          { walletId: w[0].id, amountRials: -input.amountRials, entryType: 'WITHDRAWAL', description: 'مسدودسازی برای برداشت' },
-          { walletId: escrow.id, amountRials: input.amountRials, entryType: 'WITHDRAWAL', description: 'escrow برداشت' },
+          {
+            walletId: w[0].id,
+            amountRials: -input.amountRials,
+            entryType: 'WITHDRAWAL',
+            description: 'مسدودسازی برای برداشت',
+          },
+          {
+            walletId: escrow.id,
+            amountRials: input.amountRials,
+            entryType: 'WITHDRAWAL',
+            description: 'escrow برداشت',
+          },
         ],
       });
 
@@ -356,7 +424,9 @@ export async function approveWithdrawal(input: {
   if (!input.bankReference.trim() || input.bankReference.trim().length > 60) {
     return { ok: false as const, error: 'شمارهٔ پیگیری بانکی الزامی است' };
   }
-  const rows = await db.select().from(withdrawalRequests)
+  const rows = await db
+    .select()
+    .from(withdrawalRequests)
     .where(eq(withdrawalRequests.id, input.requestId))
     .limit(1);
   const req = rows[0];
@@ -367,7 +437,9 @@ export async function approveWithdrawal(input: {
 
   try {
     await db.transaction(async (tx) => {
-      const locked = await tx.select().from(withdrawalRequests)
+      const locked = await tx
+        .select()
+        .from(withdrawalRequests)
         .where(eq(withdrawalRequests.id, req.id))
         .for('update');
       if (locked[0].status !== 'PENDING') {
@@ -382,12 +454,23 @@ export async function approveWithdrawal(input: {
         referenceId: req.id,
         description: 'پرداخت درخواست برداشت',
         legs: [
-          { walletId: escrow.id, amountRials: -req.amountRials, entryType: 'WITHDRAWAL', description: 'پرداخت برداشت' },
-          { walletId: payout.id, amountRials: req.amountRials, entryType: 'WITHDRAWAL', description: 'پرداخت انجام‌شده بانکی' },
+          {
+            walletId: escrow.id,
+            amountRials: -req.amountRials,
+            entryType: 'WITHDRAWAL',
+            description: 'پرداخت برداشت',
+          },
+          {
+            walletId: payout.id,
+            amountRials: req.amountRials,
+            entryType: 'WITHDRAWAL',
+            description: 'پرداخت انجام‌شده بانکی',
+          },
         ],
       });
 
-      await tx.update(withdrawalRequests)
+      await tx
+        .update(withdrawalRequests)
         .set({
           status: 'APPROVED',
           bankReference: input.bankReference.trim(),
@@ -413,11 +496,10 @@ export async function approveWithdrawal(input: {
   return { ok: true as const };
 }
 
-export async function rejectWithdrawal(input: {
-  requestId: string;
-  actor: AuditActor;
-}) {
-  const rows = await db.select().from(withdrawalRequests)
+export async function rejectWithdrawal(input: { requestId: string; actor: AuditActor }) {
+  const rows = await db
+    .select()
+    .from(withdrawalRequests)
     .where(eq(withdrawalRequests.id, input.requestId))
     .limit(1);
   const req = rows[0];
@@ -428,7 +510,9 @@ export async function rejectWithdrawal(input: {
 
   try {
     await db.transaction(async (tx) => {
-      const locked = await tx.select().from(withdrawalRequests)
+      const locked = await tx
+        .select()
+        .from(withdrawalRequests)
         .where(eq(withdrawalRequests.id, req.id))
         .for('update');
       if (locked[0].status !== 'PENDING') {
@@ -443,12 +527,23 @@ export async function rejectWithdrawal(input: {
         referenceId: req.id,
         description: 'رد درخواست برداشت — آزادسازی مبلغ',
         legs: [
-          { walletId: userWallet.id, amountRials: req.amountRials, entryType: 'REFUND', description: 'آزادسازی برداشت ردشده' },
-          { walletId: escrow.id, amountRials: -req.amountRials, entryType: 'REFUND', description: 'خروج از escrow' },
+          {
+            walletId: userWallet.id,
+            amountRials: req.amountRials,
+            entryType: 'REFUND',
+            description: 'آزادسازی برداشت ردشده',
+          },
+          {
+            walletId: escrow.id,
+            amountRials: -req.amountRials,
+            entryType: 'REFUND',
+            description: 'خروج از escrow',
+          },
         ],
       });
 
-      await tx.update(withdrawalRequests)
+      await tx
+        .update(withdrawalRequests)
         .set({ status: 'REJECTED', updatedAt: new Date() })
         .where(eq(withdrawalRequests.id, req.id));
     });
@@ -479,16 +574,16 @@ export async function listWithdrawalRequests(filters: { status?: string; page?: 
   }
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
-  const rows = await db.select().from(withdrawalRequests)
+  const rows = await db
+    .select()
+    .from(withdrawalRequests)
     .where(where)
     .orderBy(desc(withdrawalRequests.createdAt))
     .limit(pageSize)
     .offset((page - 1) * pageSize);
 
   const userIds = [...new Set(rows.map((r) => r.userId))];
-  const userRows = userIds.length > 0
-    ? await db.select().from(users).where(inArray(users.id, userIds))
-    : [];
+  const userRows = userIds.length > 0 ? await db.select().from(users).where(inArray(users.id, userIds)) : [];
   const userById = new Map(userRows.map((u) => [u.id, u]));
 
   return rows.map((r) => ({
@@ -505,12 +600,16 @@ export async function listWithdrawalRequests(filters: { status?: string; page?: 
 }
 
 export async function getSystemWalletBalances() {
-  const rows = await db.select().from(wallets).where(
-    sql`${wallets.ownerType} <> 'USER'`,
-  );
-  const userTotal = await db.select({
-    total: sql<number>`coalesce(sum(${wallets.balanceRials}), 0)`,
-  }).from(wallets).where(eq(wallets.ownerType, 'USER'));
+  const rows = await db
+    .select()
+    .from(wallets)
+    .where(sql`${wallets.ownerType} <> 'USER'`);
+  const userTotal = await db
+    .select({
+      total: sql<number>`coalesce(sum(${wallets.balanceRials}), 0)`,
+    })
+    .from(wallets)
+    .where(eq(wallets.ownerType, 'USER'));
 
   return {
     system: rows.map((w) => ({
@@ -523,18 +622,13 @@ export async function getSystemWalletBalances() {
 }
 
 export async function getRecentLedgerEntries(limit = 30) {
-  const entries = await db.select().from(ledgerEntries)
-    .orderBy(desc(ledgerEntries.createdAt))
-    .limit(limit);
+  const entries = await db.select().from(ledgerEntries).orderBy(desc(ledgerEntries.createdAt)).limit(limit);
   const walletIds = [...new Set(entries.map((e) => e.walletId))];
-  const walletRows = walletIds.length > 0
-    ? await db.select().from(wallets).where(inArray(wallets.id, walletIds))
-    : [];
+  const walletRows =
+    walletIds.length > 0 ? await db.select().from(wallets).where(inArray(wallets.id, walletIds)) : [];
   const walletById = new Map(walletRows.map((w) => [w.id, w]));
   const userIds = [...new Set(walletRows.map((w) => w.userId).filter((x): x is string => Boolean(x)))];
-  const userRows = userIds.length > 0
-    ? await db.select().from(users).where(inArray(users.id, userIds))
-    : [];
+  const userRows = userIds.length > 0 ? await db.select().from(users).where(inArray(users.id, userIds)) : [];
   const userById = new Map(userRows.map((u) => [u.id, u]));
 
   return entries.map((e) => {
@@ -554,7 +648,11 @@ export async function getRecentLedgerEntries(limit = 30) {
 
 /** رمزگشایی امن شبا — هرگز خطا نمی‌دهد (برای نمایش ماسک‌شده) */
 function decryptSecretSafe(cipher: string): string {
-  try { return decryptSecret(cipher); } catch { return ''; }
+  try {
+    return decryptSecret(cipher);
+  } catch {
+    return '';
+  }
 }
 
 /** ماسک شبا برای نمایش */

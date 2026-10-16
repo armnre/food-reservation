@@ -1,7 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  validateReservationWindow, buildPublishChecklist,
-} from '../server/services/menu';
+import { validateReservationWindow, buildPublishChecklist } from '../server/services/menu';
 import { rialToToman, tomanToRial, formatToman } from '../lib/money';
 
 const day = (offsetHours: number) => new Date(Date.now() + offsetHours * 3600 * 1000);
@@ -62,10 +60,9 @@ describe('چک‌لیست انتشار (ج‑۴)', () => {
   });
 
   it('بازه رزرو نامعتبر ⇒ رد', () => {
-    const list = buildPublishChecklist(
-      { ...base, reservationOpensAt: null, reservationClosesAt: null },
-      [{ capacity: 5, prices: 1 }],
-    );
+    const list = buildPublishChecklist({ ...base, reservationOpensAt: null, reservationClosesAt: null }, [
+      { capacity: 5, prices: 1 },
+    ]);
     expect(list.find((c) => c.key === 'window')?.ok).toBe(false);
   });
 });

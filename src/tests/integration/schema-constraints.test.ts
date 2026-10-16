@@ -21,7 +21,9 @@ async function expectReject(query: ReturnType<typeof sql>, code: string, constra
     err = e;
   }
   if (!err) throw new Error(`کوئری باید با قید ${constraint} رد می‌شد`);
-  const pgErr = (err as { cause?: { code?: string; constraint?: string } }).cause ?? err as { code?: string; constraint?: string };
+  const pgErr =
+    (err as { cause?: { code?: string; constraint?: string } }).cause ??
+    (err as { code?: string; constraint?: string });
   expect(pgErr.code).toBe(code);
   expect(pgErr.constraint).toBe(constraint);
 }
@@ -31,7 +33,8 @@ describe('قیدهای دیتابیس (migration واقعی)', () => {
     const { userId } = await createStudent();
     await expectReject(
       sql`INSERT INTO wallets (user_id, owner_type, balance_rials) VALUES (${userId}, 'USER', -1)`,
-      '23514', 'wallet_balance_check',
+      '23514',
+      'wallet_balance_check',
     );
   });
 
@@ -39,7 +42,8 @@ describe('قیدهای دیتابیس (migration واقعی)', () => {
     const { userId } = await createStudent();
     await expectReject(
       sql`INSERT INTO payments (user_id, amount_rials, status, gateway, idempotency_key) VALUES (${userId}, 0, 'PENDING', 'sandbox', ${'pay-neg-' + Date.now()})`,
-      '23514', 'positive_payment_check',
+      '23514',
+      'positive_payment_check',
     );
   });
 
@@ -47,7 +51,8 @@ describe('قیدهای دیتابیس (migration واقعی)', () => {
     const { userId } = await createStudent();
     await expectReject(
       sql`INSERT INTO withdrawal_requests (user_id, amount_rials, status) VALUES (${userId}, -1000, 'PENDING')`,
-      '23514', 'positive_withdrawal_check',
+      '23514',
+      'positive_withdrawal_check',
     );
   });
 
@@ -55,11 +60,13 @@ describe('قیدهای دیتابیس (migration واقعی)', () => {
     const { itemId } = await createMenuItemWithPrice();
     await expectReject(
       sql`UPDATE menu_items SET capacity = 0 WHERE id = ${itemId}`,
-      '23514', 'menu_items_capacity_check',
+      '23514',
+      'menu_items_capacity_check',
     );
     await expectReject(
       sql`UPDATE menu_items SET reserved_count = capacity + 1 WHERE id = ${itemId}`,
-      '23514', 'menu_items_reserved_check',
+      '23514',
+      'menu_items_reserved_check',
     );
   });
 
@@ -67,11 +74,13 @@ describe('قیدهای دیتابیس (migration واقعی)', () => {
     const { itemId } = await createMenuItemWithPrice({ groups: ['STUDENT', 'EMPLOYEE'] });
     await expectReject(
       sql`UPDATE menu_item_prices SET price_rials = -1 WHERE menu_item_id = ${itemId}`,
-      '23514', 'menu_item_prices_nonnegative_check',
+      '23514',
+      'menu_item_prices_nonnegative_check',
     );
     await expectReject(
       sql`INSERT INTO menu_item_prices (menu_item_id, customer_group, price_rials) VALUES (${itemId}, 'STUDENT', 50000)`,
-      '23505', 'menu_item_prices_item_group_idx',
+      '23505',
+      'menu_item_prices_item_group_idx',
     );
   });
 
@@ -79,7 +88,8 @@ describe('قیدهای دیتابیس (migration واقعی)', () => {
     const f = await createMenuItemWithPrice();
     await expectReject(
       sql`INSERT INTO menu_items (menu_id, food_id, capacity) VALUES (${f.menuId}, ${f.foodId}, 10)`,
-      '23505', 'menu_items_menu_food_idx',
+      '23505',
+      'menu_items_menu_food_idx',
     );
   });
 
@@ -91,7 +101,8 @@ describe('قیدهای دیتابیس (migration واقعی)', () => {
     await expectReject(
       sql`INSERT INTO reservations (user_id, menu_item_id, status, quantity, price_snapshot_rials, qr_token, idempotency_key, reserved_at)
         VALUES (${userId}, ${itemId}, 'CONFIRMED', 1, 100000, ${'qr2-' + Date.now()}, ${'idem2-' + Date.now()}, now())`,
-      '23505', 'reservations_user_item_active_idx',
+      '23505',
+      'reservations_user_item_active_idx',
     );
     // اما رزرو CANCELLED در کنار CONFIRMED مجاز است (رزرو مجدد پس از لغو)
     await raw(sql`INSERT INTO reservations (user_id, menu_item_id, status, quantity, price_snapshot_rials, qr_token, idempotency_key, reserved_at)
@@ -102,17 +113,21 @@ describe('قیدهای دیتابیس (migration واقعی)', () => {
     const { userId } = await createStudent();
     await expectReject(
       sql`UPDATE users SET role = 'HACKER' WHERE id = ${userId}`,
-      '23514', 'users_role_check',
+      '23514',
+      'users_role_check',
     );
     await expectReject(
       sql`INSERT INTO wallets (user_id, owner_type, balance_rials) VALUES (${userId}, 'SECRET', 0)`,
-      '23514', 'wallets_owner_type_check',
+      '23514',
+      'wallets_owner_type_check',
     );
   });
 
   it('جدول audit_logs فقط افزودنی است — UPDATE و DELETE رد می‌شوند', async () => {
     await raw(sql`INSERT INTO audit_logs (action, entity_type) VALUES ('auth:login_failed', 'login')`);
-    await expect(raw(sql`UPDATE audit_logs SET action = 'tampered' WHERE action = 'auth:login_failed'`)).rejects.toThrow();
+    await expect(
+      raw(sql`UPDATE audit_logs SET action = 'tampered' WHERE action = 'auth:login_failed'`),
+    ).rejects.toThrow();
     await expect(raw(sql`DELETE FROM audit_logs WHERE action = 'auth:login_failed'`)).rejects.toThrow();
   });
 

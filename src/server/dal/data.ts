@@ -1,7 +1,13 @@
 import { db } from '@/db';
 import {
-  users, studentProfiles, staffProfiles, sessions,
-  importBatches, importRows, auditLogs, systemSettings,
+  users,
+  studentProfiles,
+  staffProfiles,
+  sessions,
+  importBatches,
+  importRows,
+  auditLogs,
+  systemSettings,
 } from '@/db/schema';
 import { and, asc, desc, eq, ilike, inArray, isNotNull, isNull, or, sql, count, type SQL } from 'drizzle-orm';
 import { requireRole, apiAuth, type AuthContext } from './auth';
@@ -70,12 +76,17 @@ export async function listStudents(filters: StudentListFilters) {
   const where = and(...conditions);
 
   const sortColumn =
-    filters.sortKey === 'studentNumber' ? studentProfiles.studentNumber :
-    filters.sortKey === 'firstName' ? studentProfiles.firstName :
-    filters.sortKey === 'lastName' ? studentProfiles.lastName :
-    filters.sortKey === 'entryYear' ? studentProfiles.entryYear :
-    filters.sortKey === 'status' ? studentProfiles.status :
-    studentProfiles.createdAt;
+    filters.sortKey === 'studentNumber'
+      ? studentProfiles.studentNumber
+      : filters.sortKey === 'firstName'
+        ? studentProfiles.firstName
+        : filters.sortKey === 'lastName'
+          ? studentProfiles.lastName
+          : filters.sortKey === 'entryYear'
+            ? studentProfiles.entryYear
+            : filters.sortKey === 'status'
+              ? studentProfiles.status
+              : studentProfiles.createdAt;
 
   const order = filters.sortDir === 'asc' ? asc(sortColumn) : desc(sortColumn);
 
@@ -149,7 +160,15 @@ export async function getStudentDetail(userId: string) {
   if (!row) return { found: false as const, ctx };
 
   const sessionRows = await db
-    .select({ id: sessions.id, ip: sessions.ip, userAgent: sessions.userAgent, createdAt: sessions.createdAt, lastSeenAt: sessions.lastSeenAt, revokedAt: sessions.revokedAt, expiresAt: sessions.expiresAt })
+    .select({
+      id: sessions.id,
+      ip: sessions.ip,
+      userAgent: sessions.userAgent,
+      createdAt: sessions.createdAt,
+      lastSeenAt: sessions.lastSeenAt,
+      revokedAt: sessions.revokedAt,
+      expiresAt: sessions.expiresAt,
+    })
     .from(sessions)
     .where(eq(sessions.userId, userId))
     .orderBy(desc(sessions.createdAt))
@@ -205,10 +224,16 @@ export async function getStudentDetail(userId: string) {
 }
 
 /** نمایش کد ملی کامل — همیشه در لاگ ثبت می‌شود */
-export async function revealNationalCode(userId: string, actorMeta: { ip?: string | null; userAgent?: string | null }) {
+export async function revealNationalCode(
+  userId: string,
+  actorMeta: { ip?: string | null; userAgent?: string | null },
+) {
   const ctx = await requireRole(ROLES.VICE_STUDENT, ROLES.SUPER_ADMIN);
-  const rows = await db.select({ nc: studentProfiles.nationalCode, studentNumber: studentProfiles.studentNumber })
-    .from(studentProfiles).where(eq(studentProfiles.userId, userId)).limit(1);
+  const rows = await db
+    .select({ nc: studentProfiles.nationalCode, studentNumber: studentProfiles.studentNumber })
+    .from(studentProfiles)
+    .where(eq(studentProfiles.userId, userId))
+    .limit(1);
   if (!rows[0]) return { found: false as const };
 
   const { audit } = await import('@/lib/audit');
@@ -225,9 +250,14 @@ export async function revealNationalCode(userId: string, actorMeta: { ip?: strin
 
 export async function getStudentFaculties(): Promise<string[]> {
   await requireRole(ROLES.VICE_STUDENT, ROLES.SUPER_ADMIN);
-  const rows = await db.selectDistinct({ faculty: studentProfiles.faculty })
-    .from(studentProfiles).where(isNull(studentProfiles.deletedAt));
-  return rows.map((r) => r.faculty).filter((f): f is string => Boolean(f)).sort();
+  const rows = await db
+    .selectDistinct({ faculty: studentProfiles.faculty })
+    .from(studentProfiles)
+    .where(isNull(studentProfiles.deletedAt));
+  return rows
+    .map((r) => r.faculty)
+    .filter((f): f is string => Boolean(f))
+    .sort();
 }
 
 /* ───────────── کارکنان ───────────── */
@@ -255,8 +285,11 @@ export async function listStaff(filters: StaffListFilters) {
   }
   const where = and(...conditions);
 
-  const [totalRow] = await db.select({ value: count() })
-    .from(staffProfiles).innerJoin(users, eq(staffProfiles.userId, users.id)).where(where);
+  const [totalRow] = await db
+    .select({ value: count() })
+    .from(staffProfiles)
+    .innerJoin(users, eq(staffProfiles.userId, users.id))
+    .where(where);
 
   const rows = await db
     .select({
@@ -320,7 +353,12 @@ export async function getImportBatchDetail(batchId: string) {
   const batch = batches[0];
   if (!batch) return { found: false as const, ctx };
 
-  const rows = await db.select().from(importRows).where(eq(importRows.batchId, batchId)).orderBy(asc(importRows.rowNumber)).limit(1000);
+  const rows = await db
+    .select()
+    .from(importRows)
+    .where(eq(importRows.batchId, batchId))
+    .orderBy(asc(importRows.rowNumber))
+    .limit(1000);
 
   return {
     found: true as const,
@@ -349,17 +387,30 @@ export async function getImportBatchDetail(batchId: string) {
 
 /* ───────────── لاگ رویدادها (مدیر ارشد) ───────────── */
 
-export async function listAuditLogs(filters: { action?: string; entityType?: string; page?: number; pageSize?: number }) {
+export async function listAuditLogs(filters: {
+  action?: string;
+  entityType?: string;
+  page?: number;
+  pageSize?: number;
+}) {
   const ctx = await requireRole(ROLES.SUPER_ADMIN);
   const page = Math.max(1, filters.page ?? 1);
   const pageSize = Math.min(100, Math.max(5, filters.pageSize ?? 25));
   const conditions: (SQL | undefined)[] = [];
-  if (filters.action && filters.action !== 'ALL') conditions.push(eq(auditLogs.action, filters.action as never));
-  if (filters.entityType && filters.entityType !== 'ALL') conditions.push(eq(auditLogs.entityType, filters.entityType));
+  if (filters.action && filters.action !== 'ALL')
+    conditions.push(eq(auditLogs.action, filters.action as never));
+  if (filters.entityType && filters.entityType !== 'ALL')
+    conditions.push(eq(auditLogs.entityType, filters.entityType));
   const where = and(...conditions);
 
   const [totalRow] = await db.select({ value: count() }).from(auditLogs).where(where);
-  const rows = await db.select().from(auditLogs).where(where).orderBy(desc(auditLogs.createdAt)).limit(pageSize).offset((page - 1) * pageSize);
+  const rows = await db
+    .select()
+    .from(auditLogs)
+    .where(where)
+    .orderBy(desc(auditLogs.createdAt))
+    .limit(pageSize)
+    .offset((page - 1) * pageSize);
 
   return {
     ctx,
@@ -406,16 +457,27 @@ export async function getViceStats() {
     .where(isNull(users.deletedAt))
     .groupBy(studentProfiles.faculty);
 
-  const [staffCount] = await db.select({ value: count() })
-    .from(staffProfiles).innerJoin(users, eq(staffProfiles.userId, users.id)).where(isNull(users.deletedAt));
+  const [staffCount] = await db
+    .select({ value: count() })
+    .from(staffProfiles)
+    .innerJoin(users, eq(staffProfiles.userId, users.id))
+    .where(isNull(users.deletedAt));
 
-  const [studentCount] = await db.select({ value: count() })
-    .from(studentProfiles).innerJoin(users, eq(studentProfiles.userId, users.id)).where(isNull(users.deletedAt));
+  const [studentCount] = await db
+    .select({ value: count() })
+    .from(studentProfiles)
+    .innerJoin(users, eq(studentProfiles.userId, users.id))
+    .where(isNull(users.deletedAt));
 
   const [lastBatch] = await db.select().from(importBatches).orderBy(desc(importBatches.createdAt)).limit(1);
 
   const lastLogins = await db
-    .select({ id: users.id, displayName: users.displayName, role: users.role, lastLoginAt: users.lastLoginAt })
+    .select({
+      id: users.id,
+      displayName: users.displayName,
+      role: users.role,
+      lastLoginAt: users.lastLoginAt,
+    })
     .from(users)
     .where(and(isNotNull(users.lastLoginAt), isNull(users.deletedAt)))
     .orderBy(desc(users.lastLoginAt))
@@ -453,16 +515,24 @@ export async function getViceStats() {
 
 export function statusLabel(status: string): string {
   return (
-    { ACTIVE: 'فعال', ON_LEAVE: 'مرخصی', WITHDRAWN: 'انصراف', GRADUATED: 'فارغ‌التحصیل' } as Record<string, string>
-  )[status] ?? status;
+    (
+      { ACTIVE: 'فعال', ON_LEAVE: 'مرخصی', WITHDRAWN: 'انصراف', GRADUATED: 'فارغ‌التحصیل' } as Record<
+        string,
+        string
+      >
+    )[status] ?? status
+  );
 }
 
 /* ───────────── آمار عمومی برای داشبوردها ───────────── */
 
 export async function getAdminStats() {
   const ctx = await requireRole(ROLES.SUPER_ADMIN);
-  const byRole = await db.select({ role: users.role, value: count() })
-    .from(users).where(isNull(users.deletedAt)).groupBy(users.role);
+  const byRole = await db
+    .select({ role: users.role, value: count() })
+    .from(users)
+    .where(isNull(users.deletedAt))
+    .groupBy(users.role);
   const [logCount] = await db.select({ value: count() }).from(auditLogs);
   const recent = await db.select().from(auditLogs).orderBy(desc(auditLogs.createdAt)).limit(8);
 
@@ -483,15 +553,17 @@ export async function getAdminStats() {
 
 export function roleLabel(role: string): string {
   return (
-    {
-      STUDENT: 'دانشجو',
-      STAFF: 'کارمند',
-      VICE_STUDENT: 'معاونت دانشجویی',
-      NUTRITION_MANAGER: 'مدیر تغذیه',
-      CAFETERIA_OPERATOR: 'کارمند سلف',
-      SUPER_ADMIN: 'مدیر ارشد',
-    } as Record<string, string>
-  )[role] ?? role;
+    (
+      {
+        STUDENT: 'دانشجو',
+        STAFF: 'کارمند',
+        VICE_STUDENT: 'معاونت دانشجویی',
+        NUTRITION_MANAGER: 'مدیر تغذیه',
+        CAFETERIA_OPERATOR: 'کارمند سلف',
+        SUPER_ADMIN: 'مدیر ارشد',
+      } as Record<string, string>
+    )[role] ?? role
+  );
 }
 
 /* ───────────── کاربران (مدیر ارشد) ───────────── */
@@ -509,7 +581,13 @@ export async function listAllUsers(filters: { q?: string; role?: string; page?: 
   const where = and(...conditions);
 
   const [totalRow] = await db.select({ value: count() }).from(users).where(where);
-  const rows = await db.select().from(users).where(where).orderBy(desc(users.createdAt)).limit(pageSize).offset((page - 1) * pageSize);
+  const rows = await db
+    .select()
+    .from(users)
+    .where(where)
+    .orderBy(desc(users.createdAt))
+    .limit(pageSize)
+    .offset((page - 1) * pageSize);
 
   return {
     ctx,
@@ -535,10 +613,16 @@ export async function listAllUsers(filters: { q?: string; role?: string; page?: 
 
 export async function listMySessions() {
   const ctx = await requireRole(
-    ROLES.STUDENT, ROLES.STAFF, ROLES.VICE_STUDENT,
-    ROLES.NUTRITION_MANAGER, ROLES.CAFETERIA_OPERATOR, ROLES.SUPER_ADMIN,
+    ROLES.STUDENT,
+    ROLES.STAFF,
+    ROLES.VICE_STUDENT,
+    ROLES.NUTRITION_MANAGER,
+    ROLES.CAFETERIA_OPERATOR,
+    ROLES.SUPER_ADMIN,
   );
-  const rows = await db.select().from(sessions)
+  const rows = await db
+    .select()
+    .from(sessions)
     .where(and(eq(sessions.userId, ctx.user.id), isNull(sessions.revokedAt)))
     .orderBy(desc(sessions.createdAt));
 

@@ -41,7 +41,8 @@ async function main() {
       const raw = decryptSecret(sp.nationalCode); // با کلید قدیمی (در crypto.ts از env خوانده می‌شود)
       const reEncrypted = encryptSecretWith(raw, newKey);
       if (apply) {
-        await db.update(studentProfiles)
+        await db
+          .update(studentProfiles)
           .set({ nationalCode: reEncrypted, updatedAt: new Date() })
           .where(eq(studentProfiles.id, sp.id));
       }
@@ -68,4 +69,7 @@ function encryptSecretWith(plain: string, newKeyB64: string): string {
   }
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

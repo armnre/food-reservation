@@ -1,0 +1,26 @@
+# تولیدشده/وابستگی — هرگز قالب‌بندی نشوند
+node_modules
+.next
+out
+build
+dist
+coverage
+playwright-report
+test-results
+public/sw.js
+public/manifest.webmanifest
+
+# مهاجرت‌های SQL نسخه‌دار — محتوای تاریخیِ اعمال‌شده تغییر نمی‌کند
+drizzle
+src/db/migrations
+
+# اسناد فارسی/RTL دستی — Prettier قالب‌بندیِ متن دوزبانه را به‌هم می‌ریزد و
+# ارزش افزوده‌ای ندارد؛ این فایل‌ها دستی ویرایش و بازبینی می‌شوند.
+*.md
+
+# قفل‌ها و اسناد ماشین‌ساخت
+package-lock.json
+*.tsbuildinfo
+next-env.d.ts
+src/app/.next
+docs/screenshots

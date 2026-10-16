@@ -77,19 +77,19 @@ export const STUDENT_STATUS_VALUES = ['ACTIVE', 'ON_LEAVE', 'WITHDRAWN', 'GRADUA
 export type StudentStatus = (typeof STUDENT_STATUS_VALUES)[number];
 
 const STATUS_ALIASES: Record<string, StudentStatus> = {
-  'فعال': 'ACTIVE',
-  'active': 'ACTIVE',
-  'ACTIVE': 'ACTIVE',
-  'مرخصی': 'ON_LEAVE',
-  'on_leave': 'ON_LEAVE',
-  'ON_LEAVE': 'ON_LEAVE',
-  'انصراف': 'WITHDRAWN',
-  'withdrawn': 'WITHDRAWN',
-  'WITHDRAWN': 'WITHDRAWN',
-  'فارغ‌التحصیل': 'GRADUATED',
+  فعال: 'ACTIVE',
+  active: 'ACTIVE',
+  ACTIVE: 'ACTIVE',
+  مرخصی: 'ON_LEAVE',
+  on_leave: 'ON_LEAVE',
+  ON_LEAVE: 'ON_LEAVE',
+  انصراف: 'WITHDRAWN',
+  withdrawn: 'WITHDRAWN',
+  WITHDRAWN: 'WITHDRAWN',
+  فارغ‌التحصیل: 'GRADUATED',
   'فارغ التحصیل': 'GRADUATED',
-  'graduated': 'GRADUATED',
-  'GRADUATED': 'GRADUATED',
+  graduated: 'GRADUATED',
+  GRADUATED: 'GRADUATED',
 };
 
 export function parseStudentStatus(input: string): StudentStatus | null {
@@ -101,22 +101,22 @@ export const STAFF_KIND_VALUES = ['EMPLOYEE', 'FACULTY', 'CONTRACTOR', 'CAFETERI
 export type StaffKind = (typeof STAFF_KIND_VALUES)[number];
 
 const STAFF_KIND_ALIASES: Record<string, StaffKind> = {
-  'کارمند': 'EMPLOYEE',
-  'employee': 'EMPLOYEE',
-  'EMPLOYEE': 'EMPLOYEE',
-  'هیئت‌علمی': 'FACULTY',
+  کارمند: 'EMPLOYEE',
+  employee: 'EMPLOYEE',
+  EMPLOYEE: 'EMPLOYEE',
+  هیئت‌علمی: 'FACULTY',
   'هیئت علمی': 'FACULTY',
   'هيات علمي': 'FACULTY',
   'هیات علمی': 'FACULTY',
-  'faculty': 'FACULTY',
-  'FACULTY': 'FACULTY',
-  'پیمانکار': 'CONTRACTOR',
-  'contractor': 'CONTRACTOR',
-  'CONTRACTOR': 'CONTRACTOR',
-  'سلف': 'CAFETERIA',
+  faculty: 'FACULTY',
+  FACULTY: 'FACULTY',
+  پیمانکار: 'CONTRACTOR',
+  contractor: 'CONTRACTOR',
+  CONTRACTOR: 'CONTRACTOR',
+  سلف: 'CAFETERIA',
   'کارمند سلف': 'CAFETERIA',
-  'cafeteria': 'CAFETERIA',
-  'CAFETERIA': 'CAFETERIA',
+  cafeteria: 'CAFETERIA',
+  CAFETERIA: 'CAFETERIA',
 };
 
 export function parseStaffKind(input: string): StaffKind | null {

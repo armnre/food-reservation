@@ -71,13 +71,17 @@ export default function AdminSettingsPage() {
             {rows.map((r) => (
               <tr key={r.key} className="border-b border-[var(--color-border-subtle)] last:border-0">
                 <td className="px-5 py-3.5">
-                  <p className="font-mono text-xs" dir="ltr">{r.key}</p>
+                  <p className="font-mono text-xs" dir="ltr">
+                    {r.key}
+                  </p>
                   <p className="mt-0.5 text-[11px] text-[var(--color-foreground-muted)]">{r.label}</p>
                 </td>
                 <td className="px-5 py-3.5">
                   <Badge variant="muted">{r.value}</Badge>
                 </td>
-                <td className="px-5 py-3.5 text-[11px] leading-relaxed text-[var(--color-foreground-muted)]">{r.hint}</td>
+                <td className="px-5 py-3.5 text-[11px] leading-relaxed text-[var(--color-foreground-muted)]">
+                  {r.hint}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -97,7 +101,10 @@ export default function AdminSettingsPage() {
             'کوکی نشست httpOnly و sameSite=lax',
             'Redis اجباری در محیط production',
           ].map((t) => (
-            <li key={t} className="flex items-start gap-2 rounded-lg border border-[var(--color-accent-200)]/60 bg-[var(--color-surface)]/70 px-3 py-2 text-[11px] leading-relaxed">
+            <li
+              key={t}
+              className="flex items-start gap-2 rounded-lg border border-[var(--color-accent-200)]/60 bg-[var(--color-surface)]/70 px-3 py-2 text-[11px] leading-relaxed"
+            >
               <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-accent-500)]" />
               {t}
             </li>

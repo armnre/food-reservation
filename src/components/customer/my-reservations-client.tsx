@@ -5,8 +5,15 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useNow } from '@/components/shared/use-now';
 import {
-  CheckCircle2, XCircle, Clock, Ban, QrCode, Download, Wallet,
-  CalendarCheck, ArrowRight,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Ban,
+  QrCode,
+  Download,
+  Wallet,
+  CalendarCheck,
+  ArrowRight,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/data';
 import { Button } from '@/components/ui/button';
@@ -34,7 +41,10 @@ export interface MyReservation {
   qrDataUrl: string | null;
 }
 
-const STATUS_META: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'muted'; icon: React.ReactNode }> = {
+const STATUS_META: Record<
+  string,
+  { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'muted'; icon: React.ReactNode }
+> = {
   CONFIRMED: { label: 'تأییدشده', variant: 'success', icon: <CheckCircle2 size={12} /> },
   USED: { label: 'تحویل‌شده', variant: 'info', icon: <CheckCircle2 size={12} /> },
   CANCELLED: { label: 'لغو شده', variant: 'danger', icon: <XCircle size={12} /> },
@@ -43,7 +53,9 @@ const STATUS_META: Record<string, { label: string; variant: 'success' | 'warning
 };
 
 export function MyReservationsClient({
-  items, walletBalanceRials, walletHref,
+  items,
+  walletBalanceRials,
+  walletHref,
 }: {
   items: MyReservation[];
   walletBalanceRials: number;
@@ -134,7 +146,13 @@ export function MyReservationsClient({
                   <div className="flex gap-3.5 p-4">
                     <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-muted)]">
                       {item.foodThumb ? (
-                        <Image src={uploadUrl(item.foodThumb) ?? ''} alt={item.foodName} fill className="object-cover" sizes="64px" />
+                        <Image
+                          src={uploadUrl(item.foodThumb) ?? ''}
+                          alt={item.foodName}
+                          fill
+                          className="object-cover"
+                          sizes="64px"
+                        />
                       ) : (
                         <div className="grid h-full w-full place-items-center text-xl opacity-35">🍽</div>
                       )}
@@ -147,7 +165,9 @@ export function MyReservationsClient({
                             {item.mealSlotName} — {item.menuDate}
                           </p>
                         </div>
-                        <Badge variant={meta.variant}>{meta.icon} {meta.label}</Badge>
+                        <Badge variant={meta.variant}>
+                          {meta.icon} {meta.label}
+                        </Badge>
                       </div>
                       <p className="mt-2 text-xs">
                         مبلغ: <span className="font-bold">{formatToman(item.priceRials)}</span>
@@ -156,15 +176,27 @@ export function MyReservationsClient({
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2 border-t border-[var(--color-border-subtle)] bg-[var(--color-muted)]/30 px-4 py-3">
-                    <Button size="sm" variant="secondary" icon={<QrCode size={14} />} onClick={() => setQrItem(item)}>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      icon={<QrCode size={14} />}
+                      onClick={() => setQrItem(item)}
+                    >
                       نمایش QR
                     </Button>
                     {cancellable ? (
-                      <Button size="sm" variant="ghost" icon={<Ban size={14} />} onClick={() => setConfirmCancel(item)}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        icon={<Ban size={14} />}
+                        onClick={() => setConfirmCancel(item)}
+                      >
                         لغو رزرو
                       </Button>
                     ) : (
-                      <span className="text-[10px] text-[var(--color-foreground-muted)]">زمان لغو گذشته است</span>
+                      <span className="text-[10px] text-[var(--color-foreground-muted)]">
+                        زمان لغو گذشته است
+                      </span>
                     )}
                     <span className="mr-auto text-[10px] text-[var(--color-foreground-muted)]">
                       رزروشده: {item.reservedAt}
@@ -198,10 +230,14 @@ export function MyReservationsClient({
                   return (
                     <tr key={item.id} className="border-b border-[var(--color-border-subtle)] last:border-0">
                       <td className="px-4 py-2.5 font-medium">{item.foodName}</td>
-                      <td className="px-4 py-2.5 text-[var(--color-foreground-muted)]">{item.mealSlotName}</td>
+                      <td className="px-4 py-2.5 text-[var(--color-foreground-muted)]">
+                        {item.mealSlotName}
+                      </td>
                       <td className="px-4 py-2.5 text-[var(--color-foreground-muted)]">{item.menuDate}</td>
                       <td className="px-4 py-2.5 tabular-nums">{formatToman(item.priceRials)}</td>
-                      <td className="px-4 py-2.5"><Badge variant={meta.variant}>{meta.label}</Badge></td>
+                      <td className="px-4 py-2.5">
+                        <Badge variant={meta.variant}>{meta.label}</Badge>
+                      </td>
                     </tr>
                   );
                 })}
@@ -220,7 +256,9 @@ export function MyReservationsClient({
         footer={
           qrItem?.qrDataUrl ? (
             <a href={qrItem.qrDataUrl} download={`reservation-${qrItem.id}.png`}>
-              <Button variant="secondary" icon={<Download size={15} />}>دانلود QR</Button>
+              <Button variant="secondary" icon={<Download size={15} />}>
+                دانلود QR
+              </Button>
             </a>
           ) : null
         }
@@ -248,7 +286,9 @@ export function MyReservationsClient({
             </div>
           </div>
         ) : (
-          <p className="py-6 text-center text-sm text-[var(--color-foreground-muted)]">QR برای این رزرو موجود نیست.</p>
+          <p className="py-6 text-center text-sm text-[var(--color-foreground-muted)]">
+            QR برای این رزرو موجود نیست.
+          </p>
         )}
       </Dialog>
 

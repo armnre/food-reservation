@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { audit, type AuditActor } from '@/lib/audit';
 import { BizError, getOrCreateWalletInTx, getSystemWalletInTx, recordTransactionInTx } from './wallet';
 import { mealInstant } from '@/lib/tehran-time';
+import { assertUserEligibleInTx } from './eligibility';
 
 /** سقف شارژ دستی تک‌تراکنش (۵ میلیون تومان) */
 export const MAX_MANUAL_CHARGE_RIALS = 50_000_000;
@@ -29,25 +30,45 @@ export async function manualCharge(input: {
   if (reason.length < 3 || reason.length > 200) {
     return { ok: false as const, error: 'دلیل شارژ (۳ تا ۲۰۰ نویسه) الزامی است' };
   }
-  const [user] = await db.select().from(users)
-    .where(and(eq(users.id, input.userId), isNull(users.deletedAt))).limit(1);
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(and(eq(users.id, input.userId), isNull(users.deletedAt)))
+    .limit(1);
   if (!user) return { ok: false as const, error: 'کاربر یافت نشد' };
 
   const txnId = randomUUID();
-  await db.transaction(async (tx) => {
-    const userWallet = await getOrCreateWalletInTx(tx, input.userId);
-    const adjustment = await getSystemWalletInTx(tx, 'ADJUSTMENT');
-    await recordTransactionInTx(tx, {
-      idempotencyKey: `charge:${txnId}`,
-      referenceId: txnId,
-      description: `شارژ دستی: ${reason}`,
-      createdBy: input.actor.id,
-      legs: [
-        { walletId: userWallet.id, amountRials: input.amountRials, entryType: 'DEPOSIT', description: `شارژ دستی: ${reason}` },
-        { walletId: adjustment.id, amountRials: -input.amountRials, entryType: 'ADJUSTMENT', description: 'شارژ دستی توسط مدیریت' },
-      ],
+  try {
+    await db.transaction(async (tx) => {
+      // فاز ۱-۶: شارژ حساب غیرفعال/دانشجوی غیر ACTIVE مجاز نیست
+      await assertUserEligibleInTx(tx, input.userId, 'charge');
+      const userWallet = await getOrCreateWalletInTx(tx, input.userId);
+      const adjustment = await getSystemWalletInTx(tx, 'ADJUSTMENT');
+      await recordTransactionInTx(tx, {
+        idempotencyKey: `charge:${txnId}`,
+        referenceId: txnId,
+        description: `شارژ دستی: ${reason}`,
+        createdBy: input.actor.id,
+        legs: [
+          {
+            walletId: userWallet.id,
+            amountRials: input.amountRials,
+            entryType: 'DEPOSIT',
+            description: `شارژ دستی: ${reason}`,
+          },
+          {
+            walletId: adjustment.id,
+            amountRials: -input.amountRials,
+            entryType: 'ADJUSTMENT',
+            description: 'شارژ دستی توسط مدیریت',
+          },
+        ],
+      });
     });
-  });
+  } catch (e) {
+    if (e instanceof BizError) return { ok: false as const, error: e.message };
+    throw e;
+  }
 
   await audit({
     actor: input.actor,
@@ -74,10 +95,11 @@ export async function markNoShowReservations(): Promise<{ updated: number }> {
     .where(eq(reservations.status, 'CONFIRMED'));
   const now = Date.now();
   const expired = rows
-    .filter((r) => mealInstant(new Date(r.menuDate), new Date(r.endTime)).getTime() < now)
+    .filter((r) => mealInstant(r.menuDate, new Date(r.endTime)).getTime() < now)
     .map((r) => r.id);
   if (expired.length === 0) return { updated: 0 };
-  await db.update(reservations)
+  await db
+    .update(reservations)
     .set({ status: 'NO_SHOW', updatedAt: new Date() })
     .where(inArray(reservations.id, expired));
   return { updated: expired.length };
@@ -98,7 +120,8 @@ export async function reconcileLedger(): Promise<{
     sql`SELECT COALESCE(SUM(amount_rials), 0)::text AS sum FROM ledger_entries`,
   );
   const totalSum = Number(total.rows[0].sum);
-  if (totalSum !== 0) issues.push({ check: 'جمع کل', detail: `جمع دفتر ${totalSum} ریال است (باید صفر باشد)` });
+  if (totalSum !== 0)
+    issues.push({ check: 'جمع کل', detail: `جمع دفتر ${totalSum} ریال است (باید صفر باشد)` });
 
   // ۲. موجودی هر کیف = جمع ردیف‌هایش
   const mismatch = await db.execute<{ wallet_id: string }>(sql`

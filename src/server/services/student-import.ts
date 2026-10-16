@@ -1,15 +1,17 @@
 import { ARGON2_OPTIONS } from '@/lib/argon2-gate';
 import ExcelJS from 'exceljs';
 import { db } from '@/db';
-import {
-  users, studentProfiles, staffProfiles, sessions,
-  importBatches, importRows,
-} from '@/db/schema';
+import { users, studentProfiles, staffProfiles, sessions, importBatches, importRows } from '@/db/schema';
 import { and, eq, inArray, isNull, isNotNull, ne, sql } from 'drizzle-orm';
 import { encryptSecret, decryptSecret, blindIndex, maskNationalCode } from '@/lib/crypto';
 import {
-  normalizeNationalCode, normalizeStudentNumber, normalizePersianText,
-  normalizeMobile, isValidNationalCode, parseStudentStatus, toLatinDigits,
+  normalizeNationalCode,
+  normalizeStudentNumber,
+  normalizePersianText,
+  normalizeMobile,
+  isValidNationalCode,
+  parseStudentStatus,
+  toLatinDigits,
   type StudentStatus,
 } from '@/lib/validation';
 import { hash } from 'argon2';
@@ -75,52 +77,62 @@ export const STUDENT_TEMPLATE_HEADERS = [
 ] as const;
 
 export type StudentField =
-  | 'studentNumber' | 'nationalCode' | 'firstName' | 'lastName'
-  | 'faculty' | 'major' | 'entryYear' | 'status' | 'mobile';
+  | 'studentNumber'
+  | 'nationalCode'
+  | 'firstName'
+  | 'lastName'
+  | 'faculty'
+  | 'major'
+  | 'entryYear'
+  | 'status'
+  | 'mobile';
 
 const HEADER_ALIASES: Record<string, StudentField> = {
   'شماره دانشجویی': 'studentNumber',
-  'شماره‌دانشجویی': 'studentNumber',
+  شماره‌دانشجویی: 'studentNumber',
   'شماره دانشجويي': 'studentNumber',
-  'studentnumber': 'studentNumber',
-  'student_number': 'studentNumber',
+  studentnumber: 'studentNumber',
+  student_number: 'studentNumber',
   'کد ملی': 'nationalCode',
-  'کدملي': 'nationalCode',
+  کدملي: 'nationalCode',
   'کد ملي': 'nationalCode',
-  'nationalcode': 'nationalCode',
-  'national_code': 'nationalCode',
-  'نام': 'firstName',
+  nationalcode: 'nationalCode',
+  national_code: 'nationalCode',
+  نام: 'firstName',
   'first name': 'firstName',
-  'firstname': 'firstName',
-  'first_name': 'firstName',
+  firstname: 'firstName',
+  first_name: 'firstName',
   'نام خانوادگی': 'lastName',
   'نام خانوادگي': 'lastName',
-  'نام‌خانوادگی': 'lastName',
+  نام‌خانوادگی: 'lastName',
   'last name': 'lastName',
-  'lastname': 'lastName',
-  'last_name': 'lastName',
-  'خانوادگی': 'lastName',
-  'دانشکده': 'faculty',
-  'دانشگاه': 'faculty',
-  'faculty': 'faculty',
-  'رشته': 'major',
-  'major': 'major',
+  lastname: 'lastName',
+  last_name: 'lastName',
+  خانوادگی: 'lastName',
+  دانشکده: 'faculty',
+  دانشگاه: 'faculty',
+  faculty: 'faculty',
+  رشته: 'major',
+  major: 'major',
   'سال ورود': 'entryYear',
-  'ورود': 'entryYear',
+  ورود: 'entryYear',
   'entry year': 'entryYear',
-  'entryyear': 'entryYear',
-  'entry_year': 'entryYear',
-  'وضعیت': 'status',
-  'status': 'status',
-  'موبایل': 'mobile',
+  entryyear: 'entryYear',
+  entry_year: 'entryYear',
+  وضعیت: 'status',
+  status: 'status',
+  موبایل: 'mobile',
   'تلفن همراه': 'mobile',
-  'mobile': 'mobile',
+  mobile: 'mobile',
 };
 
 export function autoMapHeaders(headers: string[]): Record<number, StudentField | null> {
   const map: Record<number, StudentField | null> = {};
   headers.forEach((h, i) => {
-    const key = normalizePersianText(toLatinDigits(h ?? '')).toLowerCase().replace(/\s+/g, ' ').trim();
+    const key = normalizePersianText(toLatinDigits(h ?? ''))
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
     map[i] = HEADER_ALIASES[key] ?? HEADER_ALIASES[key.replace(/\s/g, '')] ?? null;
   });
   return map;
@@ -171,7 +183,11 @@ function cellToString(value: unknown): string {
     const o = value as { text?: string; result?: unknown; richText?: { text: string }[] };
     if (typeof o.text === 'string') return o.text.trim();
     if (o.result !== undefined && o.result !== null) return String(o.result).trim();
-    if (Array.isArray(o.richText)) return o.richText.map((x) => x.text).join('').trim();
+    if (Array.isArray(o.richText))
+      return o.richText
+        .map((x) => x.text)
+        .join('')
+        .trim();
     return '';
   }
   return String(value).trim();
@@ -199,7 +215,8 @@ export function validateStudentRows(
     const warnings: string[] = [];
 
     const studentNumber = normalizeStudentNumber(picked.studentNumber ?? '');
-    if (!/^[0-9]+$/.test(toLatinDigits(picked.studentNumber ?? '').trim())) errors.push('شماره دانشجویی باید فقط رقم باشد');
+    if (!/^[0-9]+$/.test(toLatinDigits(picked.studentNumber ?? '').trim()))
+      errors.push('شماره دانشجویی باید فقط رقم باشد');
     if (!studentNumber) errors.push('شماره دانشجویی الزامی است');
     else if (studentNumber.length < 3) errors.push('شماره دانشجویی نامعتبر است');
 
@@ -234,7 +251,8 @@ export function validateStudentRows(
     // تکراری داخل فایل
     if (studentNumber) {
       const prev = seenStudentNumbers.get(studentNumber);
-      if (prev !== undefined) errors.push(`تکراری در فایل: شماره دانشجویی ${studentNumber} در ردیف ${prev} هم آمده است`);
+      if (prev !== undefined)
+        errors.push(`تکراری در فایل: شماره دانشجویی ${studentNumber} در ردیف ${prev} هم آمده است`);
       else seenStudentNumbers.set(studentNumber, raw.rowNumber);
     }
 
@@ -245,20 +263,21 @@ export function validateStudentRows(
       else seenNationalCodes.set(ncHash, raw.rowNumber);
     }
 
-    const data: NormalizedStudent | null = errors.length === 0 && status
-      ? {
-          studentNumber,
-          nationalCode,
-          nationalCodeHash: ncHash,
-          firstName,
-          lastName,
-          faculty,
-          major,
-          entryYear,
-          status,
-          mobile: mobile ?? null,
-        }
-      : null;
+    const data: NormalizedStudent | null =
+      errors.length === 0 && status
+        ? {
+            studentNumber,
+            nationalCode,
+            nationalCodeHash: ncHash,
+            firstName,
+            lastName,
+            faculty,
+            major,
+            entryYear,
+            status,
+            mobile: mobile ?? null,
+          }
+        : null;
 
     rows.push({
       rowNumber: raw.rowNumber,
@@ -278,7 +297,9 @@ export function validateStudentRows(
     rows,
     counts: {
       total: rows.length,
-      create: 0, update: 0, conflict: 0,
+      create: 0,
+      update: 0,
+      conflict: 0,
       error: rows.filter((r) => r.kind === 'ERROR').length,
     },
   };
@@ -348,8 +369,11 @@ export async function classifyAgainstDatabase(preview: PreviewResult): Promise<P
       row.kind = 'CONFLICT';
       row.needsExplicitConfirm = true;
       try {
-        const enc = await db.select({ nc: studentProfiles.nationalCode })
-          .from(studentProfiles).where(eq(studentProfiles.studentNumber, d.studentNumber)).limit(1);
+        const enc = await db
+          .select({ nc: studentProfiles.nationalCode })
+          .from(studentProfiles)
+          .where(eq(studentProfiles.studentNumber, d.studentNumber))
+          .limit(1);
         if (enc[0]) row.existingNationalCodeMasked = maskNationalCode(decryptSecret(enc[0].nc));
       } catch {
         row.existingNationalCodeMasked = '****';
@@ -387,17 +411,25 @@ export async function commitStudentImport(input: {
   deactivateMissing: boolean;
   allStudentNumbersInFile: string[];
 }): Promise<CommitResult> {
-  const applicable = input.rows.filter((r) => r.data && (r.kind === 'NEW' || r.kind === 'UPDATE' || (r.kind === 'CONFLICT' && r.confirmedOverride)));
-  const errorRows = input.rows.filter((r) => r.kind === 'ERROR' || (r.kind === 'CONFLICT' && !r.confirmedOverride));
+  const applicable = input.rows.filter(
+    (r) =>
+      r.data && (r.kind === 'NEW' || r.kind === 'UPDATE' || (r.kind === 'CONFLICT' && r.confirmedOverride)),
+  );
+  const errorRows = input.rows.filter(
+    (r) => r.kind === 'ERROR' || (r.kind === 'CONFLICT' && !r.confirmedOverride),
+  );
 
   const result = await db.transaction(async (tx) => {
-    const [batch] = await tx.insert(importBatches).values({
-      kind: 'STUDENT',
-      fileName: input.fileName,
-      status: 'PROCESSING',
-      recordCount: input.rows.length,
-      importedBy: input.actor.id,
-    }).returning();
+    const [batch] = await tx
+      .insert(importBatches)
+      .values({
+        kind: 'STUDENT',
+        fileName: input.fileName,
+        status: 'PROCESSING',
+        recordCount: input.rows.length,
+        importedBy: input.actor.id,
+      })
+      .returning();
 
     let created = 0;
     let updated = 0;
@@ -410,16 +442,19 @@ export async function commitStudentImport(input: {
       const encryptedNc = encryptSecret(d.nationalCode);
 
       if (row.kind === 'NEW') {
-        const [user] = await tx.insert(users).values({
-          role: 'STUDENT',
-          username: d.studentNumber,
-          passwordHash: null,
-          mustChangePassword: true,
-          isActive: true,
-          displayName: `${d.firstName} ${d.lastName}`,
-          mobile: d.mobile,
-          createdBy: input.actor.id,
-        }).returning();
+        const [user] = await tx
+          .insert(users)
+          .values({
+            role: 'STUDENT',
+            username: d.studentNumber,
+            passwordHash: null,
+            mustChangePassword: true,
+            isActive: true,
+            displayName: `${d.firstName} ${d.lastName}`,
+            mobile: d.mobile,
+            createdBy: input.actor.id,
+          })
+          .returning();
 
         await tx.insert(studentProfiles).values({
           userId: user.id,
@@ -440,7 +475,13 @@ export async function commitStudentImport(input: {
         await tx.insert(importRows).values({
           batchId: batch.id,
           rowNumber: row.rowNumber,
-          payload: {studentNumber:d.studentNumber,firstName:d.firstName,lastName:d.lastName,nationalCode:maskNationalCode(d.nationalCode),status:d.status} as never,
+          payload: {
+            studentNumber: d.studentNumber,
+            firstName: d.firstName,
+            lastName: d.lastName,
+            nationalCode: maskNationalCode(d.nationalCode),
+            status: d.status,
+          } as never,
           status: 'CREATED',
           userId: user.id,
         });
@@ -448,27 +489,35 @@ export async function commitStudentImport(input: {
         const userId = row.existingUserId as string;
         const isReset = row.kind === 'CONFLICT';
 
-        await tx.update(studentProfiles).set({
-          nationalCode: encryptedNc,
-          nationalCodeHash: d.nationalCodeHash,
-          firstName: d.firstName,
-          lastName: d.lastName,
-          faculty: d.faculty,
-          major: d.major,
-          entryYear: d.entryYear,
-          status: d.status,
-          updatedAt: new Date(),
-        }).where(eq(studentProfiles.userId, userId));
+        await tx
+          .update(studentProfiles)
+          .set({
+            nationalCode: encryptedNc,
+            nationalCodeHash: d.nationalCodeHash,
+            firstName: d.firstName,
+            lastName: d.lastName,
+            faculty: d.faculty,
+            major: d.major,
+            entryYear: d.entryYear,
+            status: d.status,
+            updatedAt: new Date(),
+          })
+          .where(eq(studentProfiles.userId, userId));
 
-        await tx.update(users).set({
-          displayName: `${d.firstName} ${d.lastName}`,
-          mobile: d.mobile,
-          ...(isReset ? { passwordHash: null, mustChangePassword: true } : {}),
-          updatedAt: new Date(),
-        }).where(eq(users.id, userId));
+        await tx
+          .update(users)
+          .set({
+            displayName: `${d.firstName} ${d.lastName}`,
+            mobile: d.mobile,
+            ...(isReset ? { passwordHash: null, mustChangePassword: true } : {}),
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, userId));
 
         if (isReset) {
-          await tx.update(sessions).set({ revokedAt: new Date() })
+          await tx
+            .update(sessions)
+            .set({ revokedAt: new Date() })
             .where(and(eq(sessions.userId, userId), isNull(sessions.revokedAt)));
         }
 
@@ -478,7 +527,13 @@ export async function commitStudentImport(input: {
         await tx.insert(importRows).values({
           batchId: batch.id,
           rowNumber: row.rowNumber,
-          payload: {studentNumber:d.studentNumber,firstName:d.firstName,lastName:d.lastName,nationalCode:maskNationalCode(d.nationalCode),status:d.status} as never,
+          payload: {
+            studentNumber: d.studentNumber,
+            firstName: d.firstName,
+            lastName: d.lastName,
+            nationalCode: maskNationalCode(d.nationalCode),
+            status: d.status,
+          } as never,
           status: row.kind === 'CONFLICT' ? 'CONFLICT' : 'UPDATED',
           userId,
         });
@@ -489,7 +544,7 @@ export async function commitStudentImport(input: {
       await tx.insert(importRows).values({
         batchId: batch.id,
         rowNumber: row.rowNumber,
-        payload: {...row.raw,nationalCode:maskNationalCode(row.raw.nationalCode??'')} as never,
+        payload: { ...row.raw, nationalCode: maskNationalCode(row.raw.nationalCode ?? '') } as never,
         status: 'ERROR',
         errors: row.errors as never,
       });
@@ -502,18 +557,29 @@ export async function commitStudentImport(input: {
         const affected = await tx
           .select({ userId: studentProfiles.userId })
           .from(studentProfiles)
-          .where(and(
-            isNull(studentProfiles.deletedAt),
-            eq(studentProfiles.status, 'ACTIVE'),
-            sql`${studentProfiles.studentNumber} NOT IN (${sql.join(inFile.map((s) => sql`${s}`), sql`, `)})`,
-          ));
+          .where(
+            and(
+              isNull(studentProfiles.deletedAt),
+              eq(studentProfiles.status, 'ACTIVE'),
+              sql`${studentProfiles.studentNumber} NOT IN (${sql.join(
+                inFile.map((s) => sql`${s}`),
+                sql`, `,
+              )})`,
+            ),
+          );
         const ids = affected.map((a) => a.userId);
         if (ids.length > 0) {
-          await tx.update(studentProfiles).set({ status: 'ON_LEAVE', updatedAt: new Date() })
+          await tx
+            .update(studentProfiles)
+            .set({ status: 'ON_LEAVE', updatedAt: new Date() })
             .where(inArray(studentProfiles.userId, ids));
-          await tx.update(users).set({ isActive: false, updatedAt: new Date() })
+          await tx
+            .update(users)
+            .set({ isActive: false, updatedAt: new Date() })
             .where(inArray(users.id, ids));
-          await tx.update(sessions).set({ revokedAt: new Date() })
+          await tx
+            .update(sessions)
+            .set({ revokedAt: new Date() })
             .where(and(inArray(sessions.userId, ids), isNull(sessions.revokedAt)));
           deactivated = ids.length;
         }
@@ -522,20 +588,27 @@ export async function commitStudentImport(input: {
 
     // غیرفعال‌سازی نشست دانشجویانی که وضعیت‌شان غیرفعال شد
     if (updatedNonActive.length > 0) {
-      await tx.update(sessions).set({ revokedAt: new Date() })
+      await tx
+        .update(sessions)
+        .set({ revokedAt: new Date() })
         .where(and(inArray(sessions.userId, updatedNonActive), isNull(sessions.revokedAt)));
-      await tx.update(users).set({ isActive: false, updatedAt: new Date() })
+      await tx
+        .update(users)
+        .set({ isActive: false, updatedAt: new Date() })
         .where(inArray(users.id, updatedNonActive));
     }
 
-    await tx.update(importBatches).set({
-      status: 'COMPLETED',
-      createdCount: created,
-      updatedCount: updated,
-      rejectedCount: errorRows.length,
-      deactivatedCount: deactivated,
-      updatedAt: new Date(),
-    }).where(eq(importBatches.id, batch.id));
+    await tx
+      .update(importBatches)
+      .set({
+        status: 'COMPLETED',
+        createdCount: created,
+        updatedCount: updated,
+        rejectedCount: errorRows.length,
+        deactivatedCount: deactivated,
+        updatedAt: new Date(),
+      })
+      .where(eq(importBatches.id, batch.id));
 
     return {
       batchId: batch.id,
@@ -572,7 +645,9 @@ export interface UndoResult {
 }
 
 export async function undoLastImport(actor: AuditActor): Promise<UndoResult | { error: string }> {
-  const batches = await db.select().from(importBatches)
+  const batches = await db
+    .select()
+    .from(importBatches)
     .where(and(eq(importBatches.status, 'COMPLETED'), isNull(importBatches.undoneAt)))
     .orderBy(sql`${importBatches.createdAt} DESC`)
     .limit(1);
@@ -583,9 +658,17 @@ export async function undoLastImport(actor: AuditActor): Promise<UndoResult | { 
   return undoImport(batch.id, actor);
 }
 
-export async function undoImport(batchId: string, actor: AuditActor): Promise<UndoResult | { error: string }> {
-  const [last] = await db.select({id:importBatches.id}).from(importBatches).where(eq(importBatches.status,'COMPLETED')).orderBy(sql`${importBatches.createdAt} DESC`).limit(1);
-  if(last?.id!==batchId)return {error:'فقط آخرین ایمپورت تکمیل‌شده قابل بازگردانی است'};
+export async function undoImport(
+  batchId: string,
+  actor: AuditActor,
+): Promise<UndoResult | { error: string }> {
+  const [last] = await db
+    .select({ id: importBatches.id })
+    .from(importBatches)
+    .where(eq(importBatches.status, 'COMPLETED'))
+    .orderBy(sql`${importBatches.createdAt} DESC`)
+    .limit(1);
+  if (last?.id !== batchId) return { error: 'فقط آخرین ایمپورت تکمیل‌شده قابل بازگردانی است' };
   const rows = await db.select().from(importRows).where(eq(importRows.batchId, batchId));
   const createdRows = rows.filter((r) => r.status === 'CREATED' && r.userId);
 
@@ -595,30 +678,43 @@ export async function undoImport(batchId: string, actor: AuditActor): Promise<Un
 
     for (const row of createdRows) {
       const userId = row.userId as string;
-      const sessionCount = await tx.select({ c: sql<number>`count(*)` })
-        .from(sessions).where(eq(sessions.userId, userId));
-      const userRow = await tx.select({ lastLoginAt: users.lastLoginAt }).from(users).where(eq(users.id, userId)).limit(1);
-      const hasActivity = (Number(sessionCount[0]?.c ?? 0) > 0) || userRow[0]?.lastLoginAt != null;
+      const sessionCount = await tx
+        .select({ c: sql<number>`count(*)` })
+        .from(sessions)
+        .where(eq(sessions.userId, userId));
+      const userRow = await tx
+        .select({ lastLoginAt: users.lastLoginAt })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+      const hasActivity = Number(sessionCount[0]?.c ?? 0) > 0 || userRow[0]?.lastLoginAt != null;
 
       if (hasActivity) {
         skippedReasons.push(`ردیف ${row.rowNumber}: کاربر ورود/فعالیت داشته و بازگردانی نشد`);
         continue;
       }
 
-      await tx.update(studentProfiles).set({ deletedAt: new Date(), updatedAt: new Date() })
+      await tx
+        .update(studentProfiles)
+        .set({ deletedAt: new Date(), updatedAt: new Date() })
         .where(eq(studentProfiles.userId, userId));
-      await tx.update(users).set({ deletedAt: new Date(), isActive: false, updatedAt: new Date() })
+      await tx
+        .update(users)
+        .set({ deletedAt: new Date(), isActive: false, updatedAt: new Date() })
         .where(eq(users.id, userId));
       await tx.update(importRows).set({ status: 'UNDONE' }).where(eq(importRows.id, row.id));
       undone++;
     }
 
-    await tx.update(importBatches).set({
-      status: 'UNDONE',
-      undoneAt: new Date(),
-      undoneBy: actor.id,
-      updatedAt: new Date(),
-    }).where(eq(importBatches.id, batchId));
+    await tx
+      .update(importBatches)
+      .set({
+        status: 'UNDONE',
+        undoneAt: new Date(),
+        undoneBy: actor.id,
+        updatedAt: new Date(),
+      })
+      .where(eq(importBatches.id, batchId));
 
     return { batchId, undone, skipped: skippedReasons.length, skippedReasons };
   });
@@ -644,13 +740,13 @@ export async function buildStudentTemplate(): Promise<Buffer> {
   ws.addRow({
     'شماره دانشجویی': '40123456',
     'کد ملی': '0012345678',
-    'نام': 'علی',
+    نام: 'علی',
     'نام خانوادگی': 'رضایی',
-    'دانشکده': 'مهندسی',
-    'رشته': 'نرم‌افزار',
+    دانشکده: 'مهندسی',
+    رشته: 'نرم‌افزار',
     'سال ورود': '1401',
-    'وضعیت': 'فعال',
-    'موبایل': '09121234567',
+    وضعیت: 'فعال',
+    موبایل: '09121234567',
   });
   const buf = await wb.xlsx.writeBuffer();
   return Buffer.from(buf as ArrayBuffer);
@@ -659,7 +755,13 @@ export async function buildStudentTemplate(): Promise<Buffer> {
 /* ───────────── ایمپورت کارکنان (ب-۵) ───────────── */
 
 export const STAFF_TEMPLATE_HEADERS = [
-  'نام کاربری', 'نام', 'نام خانوادگی', 'نوع', 'واحد', 'کد ملی', 'موبایل',
+  'نام کاربری',
+  'نام',
+  'نام خانوادگی',
+  'نوع',
+  'واحد',
+  'کد ملی',
+  'موبایل',
 ] as const;
 
 export interface StaffRow {
@@ -703,7 +805,9 @@ export async function readStaffWorkbook(buffer: Buffer): Promise<{ headers: stri
 
     rows.push({
       rowNumber: r,
-      username, firstName, lastName,
+      username,
+      firstName,
+      lastName,
       kind: kindRaw,
       department,
       nationalCode: nationalCode ?? null,
@@ -730,7 +834,8 @@ export async function commitStaffImport(input: {
   const invalid = input.rows.filter((r) => r.errors.length > 0 || !input.kindMap(r.kind));
   for (const r of input.rows) {
     const k = input.kindMap(r.kind);
-    if ((!k || k === 'CAFETERIA') && !r.errors.includes('نوع کارمند نامعتبر است')) r.errors.push('نوع کارمند نامعتبر است');
+    if ((!k || k === 'CAFETERIA') && !r.errors.includes('نوع کارمند نامعتبر است'))
+      r.errors.push('نوع کارمند نامعتبر است');
   }
   const bad = input.rows.filter((r) => r.errors.length > 0);
   if (bad.length > 0) return { error: 'برخی ردیف‌ها نامعتبرند', rows: bad };
@@ -746,8 +851,15 @@ export async function commitStaffImport(input: {
   const dup = input.rows.filter((r) => r.errors.length > 0);
   if (dup.length > 0) return { error: 'برخی ردیف‌ها نامعتبرند', rows: dup };
 
-  const existing = await db.select({ username: users.username })
-    .from(users).where(inArray(users.username, input.rows.map((r) => r.username)));
+  const existing = await db
+    .select({ username: users.username })
+    .from(users)
+    .where(
+      inArray(
+        users.username,
+        input.rows.map((r) => r.username),
+      ),
+    );
   const existingSet = new Set(existing.map((e) => e.username));
   for (const r of input.rows) {
     if (existingSet.has(r.username)) r.errors.push('نام کاربری قبلاً ثبت شده است');
@@ -758,29 +870,35 @@ export async function commitStaffImport(input: {
   const credentials: { username: string; password: string }[] = [];
 
   const result = await db.transaction(async (tx) => {
-    const [batch] = await tx.insert(importBatches).values({
-      kind: 'STAFF',
-      fileName: input.fileName,
-      status: 'PROCESSING',
-      recordCount: input.rows.length,
-      importedBy: input.actor.id,
-    }).returning();
+    const [batch] = await tx
+      .insert(importBatches)
+      .values({
+        kind: 'STAFF',
+        fileName: input.fileName,
+        status: 'PROCESSING',
+        recordCount: input.rows.length,
+        importedBy: input.actor.id,
+      })
+      .returning();
 
     let created = 0;
     for (const row of input.rows) {
       const temporary = generateTempPassword();
       const kind = input.kindMap(row.kind) as 'EMPLOYEE' | 'FACULTY' | 'CONTRACTOR' | 'CAFETERIA';
 
-      const [user] = await tx.insert(users).values({
-        role: kind === 'CAFETERIA' ? 'CAFETERIA_OPERATOR' : 'STAFF',
-        username: row.username,
-        passwordHash: await hash(temporary, ARGON2_OPTIONS),
-        mustChangePassword: true,
-        isActive: true,
-        displayName: `${row.firstName} ${row.lastName}`,
-        mobile: row.mobile,
-        createdBy: input.actor.id,
-      }).returning();
+      const [user] = await tx
+        .insert(users)
+        .values({
+          role: kind === 'CAFETERIA' ? 'CAFETERIA_OPERATOR' : 'STAFF',
+          username: row.username,
+          passwordHash: await hash(temporary, ARGON2_OPTIONS),
+          mustChangePassword: true,
+          isActive: true,
+          displayName: `${row.firstName} ${row.lastName}`,
+          mobile: row.mobile,
+          createdBy: input.actor.id,
+        })
+        .returning();
 
       await tx.insert(staffProfiles).values({
         userId: user.id,
@@ -802,11 +920,14 @@ export async function commitStaffImport(input: {
       created++;
     }
 
-    await tx.update(importBatches).set({
-      status: 'COMPLETED',
-      createdCount: created,
-      updatedAt: new Date(),
-    }).where(eq(importBatches.id, batch.id));
+    await tx
+      .update(importBatches)
+      .set({
+        status: 'COMPLETED',
+        createdCount: created,
+        updatedAt: new Date(),
+      })
+      .where(eq(importBatches.id, batch.id));
 
     return { batchId: batch.id, created };
   });

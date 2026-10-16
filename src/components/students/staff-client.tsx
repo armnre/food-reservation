@@ -7,8 +7,11 @@ import { DataTable, Badge, Field, TextInput, Select, type Column } from '@/compo
 import { Button } from '@/components/ui/button';
 import { Dialog, ConfirmDialog, useToast, EmptyState } from '@/components/ui/feedback';
 import {
-  createStaffAction, updateStaffAction, toggleUserActiveAction,
-  resetStaffPasswordAction, exportCredentialsAction,
+  createStaffAction,
+  updateStaffAction,
+  toggleUserActiveAction,
+  resetStaffPasswordAction,
+  exportCredentialsAction,
 } from '@/server/actions/student-actions';
 import { saveAsBase64 } from '@/lib/download';
 import { toPersianDigits } from '@/lib/validation';
@@ -35,7 +38,12 @@ const KIND_LABEL: Record<string, string> = {
 };
 
 export function StaffClient({
-  items, total, page, pageSize, initialQuery, canCreate,
+  items,
+  total,
+  page,
+  pageSize,
+  initialQuery,
+  canCreate,
 }: {
   items: StaffItem[];
   total: number;
@@ -81,7 +89,15 @@ export function StaffClient({
         </div>
       ),
     },
-    { key: 'username', header: 'نام کاربری', render: (r) => <span className="font-mono text-xs" dir="ltr">{r.username}</span> },
+    {
+      key: 'username',
+      header: 'نام کاربری',
+      render: (r) => (
+        <span className="font-mono text-xs" dir="ltr">
+          {r.username}
+        </span>
+      ),
+    },
     {
       key: 'kind',
       header: 'نوع',
@@ -101,7 +117,9 @@ export function StaffClient({
       key: 'lastLogin',
       header: 'آخرین ورود',
       hideOnMobile: true,
-      render: (r) => <span className="text-[11px] text-[var(--color-foreground-muted)]">{r.lastLoginAt ?? 'هرگز'}</span>,
+      render: (r) => (
+        <span className="text-[11px] text-[var(--color-foreground-muted)]">{r.lastLoginAt ?? 'هرگز'}</span>
+      ),
     },
     {
       key: 'actions',
@@ -109,7 +127,11 @@ export function StaffClient({
       render: (r) => (
         <div className="flex items-center gap-1">
           <button
-            onClick={(e) => { e.stopPropagation(); setEditing(r); setFormOpen(true); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setEditing(r);
+              setFormOpen(true);
+            }}
             className="rounded-lg border border-[var(--color-border)] p-1.5 text-[var(--color-foreground-muted)] transition-colors hover:bg-[var(--color-brand-50)] hover:text-[var(--color-brand-700)]"
             aria-label="ویرایش"
           >
@@ -121,7 +143,11 @@ export function StaffClient({
               const res = await resetStaffPasswordAction(r.userId);
               if (res.ok) {
                 setCredential({ username: r.username, password: res.temporary });
-                toast.push({ kind: 'info', title: 'رمز موقت تولید شد', description: 'این رمز فقط یک بار نمایش داده می‌شود' });
+                toast.push({
+                  kind: 'info',
+                  title: 'رمز موقت تولید شد',
+                  description: 'این رمز فقط یک بار نمایش داده می‌شود',
+                });
               } else {
                 toast.push({ kind: 'error', title: 'خطا', description: res.error });
               }
@@ -132,7 +158,10 @@ export function StaffClient({
             <KeyRound size={14} />
           </button>
           <button
-            onClick={(e) => { e.stopPropagation(); setConfirmToggle(r); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setConfirmToggle(r);
+            }}
             className="rounded-lg border border-[var(--color-border)] p-1.5 text-[var(--color-foreground-muted)] transition-colors hover:bg-rose-50 hover:text-rose-600"
             aria-label={r.isActive ? 'غیرفعال‌سازی' : 'فعال‌سازی'}
           >
@@ -174,7 +203,14 @@ export function StaffClient({
 
       <div className="mb-4 flex flex-wrap gap-2.5">
         {canCreate && (
-          <Button variant="primary" icon={<Plus size={16} />} onClick={() => { setEditing(null); setFormOpen(true); }}>
+          <Button
+            variant="primary"
+            icon={<Plus size={16} />}
+            onClick={() => {
+              setEditing(null);
+              setFormOpen(true);
+            }}
+          >
             افزودن کارمند
           </Button>
         )}
@@ -186,7 +222,11 @@ export function StaffClient({
             const res = await exportCredentialsAction([...selected]);
             if (res.ok) {
               saveAsBase64(res.base64, 'اعتبارنامه‌ها.xlsx');
-              toast.push({ kind: 'success', title: 'فایل اعتبارنامه‌ها دانلود شد', description: 'این رمزها دیگر در هیچ جایی ذخیره نمی‌شوند' });
+              toast.push({
+                kind: 'success',
+                title: 'فایل اعتبارنامه‌ها دانلود شد',
+                description: 'این رمزها دیگر در هیچ جایی ذخیره نمی‌شوند',
+              });
               setSelected(new Set());
               router.refresh();
             } else {
@@ -210,12 +250,19 @@ export function StaffClient({
         onSearchChange={setQuery}
         searchPlaceholder="جستجو…"
         selectedKeys={selected}
-        onToggleSelect={(key) => setSelected((prev) => {
-          const n = new Set(prev);
-          if (n.has(key)) n.delete(key); else n.add(key);
-          return n;
-        })}
-        onToggleSelectAll={() => setSelected((prev) => (prev.size === items.length ? new Set() : new Set(items.map((i) => i.userId))))}
+        onToggleSelect={(key) =>
+          setSelected((prev) => {
+            const n = new Set(prev);
+            if (n.has(key)) n.delete(key);
+            else n.add(key);
+            return n;
+          })
+        }
+        onToggleSelectAll={() =>
+          setSelected((prev) =>
+            prev.size === items.length ? new Set() : new Set(items.map((i) => i.userId)),
+          )
+        }
         emptyTitle="کارمندی یافت نشد"
         emptyDescription="نخستین کارمند را اضافه کنید یا فیلترها را تغییر دهید."
       />
@@ -223,7 +270,10 @@ export function StaffClient({
       <StaffFormDialog
         open={formOpen}
         editing={editing}
-        onClose={() => { setFormOpen(false); setEditing(null); }}
+        onClose={() => {
+          setFormOpen(false);
+          setEditing(null);
+        }}
         onCreated={(cred) => {
           setFormOpen(false);
           setEditing(null);
@@ -239,10 +289,14 @@ export function StaffClient({
         size="sm"
         footer={
           <>
-            <Button variant="secondary" icon={<Copy size={15} />} onClick={() => {
-              navigator.clipboard?.writeText(`${credential?.username}\n${credential?.password}`);
-              toast.push({ kind: 'success', title: 'در کلیپ‌بورد کپی شد' });
-            }}>
+            <Button
+              variant="secondary"
+              icon={<Copy size={15} />}
+              onClick={() => {
+                navigator.clipboard?.writeText(`${credential?.username}\n${credential?.password}`);
+                toast.push({ kind: 'success', title: 'در کلیپ‌بورد کپی شد' });
+              }}
+            >
               کپی
             </Button>
             <Button onClick={() => setCredential(null)}>متوجه شدم</Button>
@@ -253,18 +307,25 @@ export function StaffClient({
           <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3.5">
             <ClipboardCheck size={16} className="mt-0.5 shrink-0 text-amber-600" />
             <p className="text-[11px] leading-loose text-amber-800">
-              این رمز فقط همین یک بار نمایش داده می‌شود و در هیچ‌جای سامانه ذخیره نمی‌شود. آن را در جای امنی نگه دارید.
+              این رمز فقط همین یک بار نمایش داده می‌شود و در هیچ‌جای سامانه ذخیره نمی‌شود. آن را در جای امنی
+              نگه دارید.
             </p>
           </div>
           <div>
             <p className="text-[11px] text-[var(--color-foreground-muted)]">نام کاربری</p>
-            <p className="mt-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)]/50 px-3.5 py-2.5 font-mono text-sm" dir="ltr">
+            <p
+              className="mt-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)]/50 px-3.5 py-2.5 font-mono text-sm"
+              dir="ltr"
+            >
               {credential?.username}
             </p>
           </div>
           <div>
             <p className="text-[11px] text-[var(--color-foreground-muted)]">رمز موقت</p>
-            <p className="mt-1 rounded-lg border border-[var(--color-accent-200)] bg-[var(--color-accent-50)] px-3.5 py-2.5 font-mono text-sm font-bold tracking-widest text-[var(--color-accent-900)]" dir="ltr">
+            <p
+              className="mt-1 rounded-lg border border-[var(--color-accent-200)] bg-[var(--color-accent-50)] px-3.5 py-2.5 font-mono text-sm font-bold tracking-widest text-[var(--color-accent-900)]"
+              dir="ltr"
+            >
               {credential?.password}
             </p>
           </div>
@@ -313,7 +374,10 @@ export function StaffClient({
 }
 
 function StaffFormDialog({
-  open, editing, onClose, onCreated,
+  open,
+  editing,
+  onClose,
+  onCreated,
 }: {
   open: boolean;
   editing: StaffItem | null;
@@ -322,8 +386,14 @@ function StaffFormDialog({
 }) {
   const toast = useToast();
   const [values, setValues] = useState({
-    username: '', firstName: '', lastName: '', kind: 'EMPLOYEE',
-    department: '', nationalCode: '', mobile: '', employerNote: '',
+    username: '',
+    firstName: '',
+    lastName: '',
+    kind: 'EMPLOYEE',
+    department: '',
+    nationalCode: '',
+    mobile: '',
+    employerNote: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -360,9 +430,12 @@ function StaffFormDialog({
     setBusy(true);
     if (editing) {
       const res = await updateStaffAction(editing.userId, {
-        firstName: values.firstName, lastName: values.lastName,
-        kind: values.kind, department: values.department,
-        mobile: values.mobile || null, employerNote: values.employerNote || null,
+        firstName: values.firstName,
+        lastName: values.lastName,
+        kind: values.kind,
+        department: values.department,
+        mobile: values.mobile || null,
+        employerNote: values.employerNote || null,
       });
       setBusy(false);
       if (!res.ok) {
@@ -375,9 +448,13 @@ function StaffFormDialog({
     }
 
     const res = await createStaffAction({
-      username: values.username, firstName: values.firstName, lastName: values.lastName,
-      kind: values.kind, department: values.department || null,
-      nationalCode: values.nationalCode || null, mobile: values.mobile || null,
+      username: values.username,
+      firstName: values.firstName,
+      lastName: values.lastName,
+      kind: values.kind,
+      department: values.department || null,
+      nationalCode: values.nationalCode || null,
+      mobile: values.mobile || null,
       employerNote: values.employerNote || null,
     });
     setBusy(false);
@@ -397,23 +474,37 @@ function StaffFormDialog({
       title={editing ? 'ویرایش کارمند' : 'افزودن کارمند جدید'}
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>انصراف</Button>
-          <Button loading={busy} onClick={submit}>{editing ? 'ذخیره تغییرات' : 'ایجاد حساب'}</Button>
+          <Button variant="ghost" onClick={onClose}>
+            انصراف
+          </Button>
+          <Button loading={busy} onClick={submit}>
+            {editing ? 'ذخیره تغییرات' : 'ایجاد حساب'}
+          </Button>
         </>
       }
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {!editing && (
           <Field label="نام کاربری" required error={errors.username}>
-            <TextInput dir="ltr" value={values.username} className="text-right"
-              onChange={(e) => setValues((p) => ({ ...p, username: e.target.value }))} />
+            <TextInput
+              dir="ltr"
+              value={values.username}
+              className="text-right"
+              onChange={(e) => setValues((p) => ({ ...p, username: e.target.value }))}
+            />
           </Field>
         )}
         <Field label="نام" required error={errors.firstName}>
-          <TextInput value={values.firstName} onChange={(e) => setValues((p) => ({ ...p, firstName: e.target.value }))} />
+          <TextInput
+            value={values.firstName}
+            onChange={(e) => setValues((p) => ({ ...p, firstName: e.target.value }))}
+          />
         </Field>
         <Field label="نام خانوادگی" required error={errors.lastName}>
-          <TextInput value={values.lastName} onChange={(e) => setValues((p) => ({ ...p, lastName: e.target.value }))} />
+          <TextInput
+            value={values.lastName}
+            onChange={(e) => setValues((p) => ({ ...p, lastName: e.target.value }))}
+          />
         </Field>
         <Field label="نوع">
           <Select value={values.kind} onChange={(e) => setValues((p) => ({ ...p, kind: e.target.value }))}>
@@ -424,15 +515,26 @@ function StaffFormDialog({
           </Select>
         </Field>
         <Field label="واحد / گروه">
-          <TextInput value={values.department} onChange={(e) => setValues((p) => ({ ...p, department: e.target.value }))} />
+          <TextInput
+            value={values.department}
+            onChange={(e) => setValues((p) => ({ ...p, department: e.target.value }))}
+          />
         </Field>
         <Field label="کد ملی (اختیاری)">
-          <TextInput dir="ltr" value={values.nationalCode} className="text-right"
-            onChange={(e) => setValues((p) => ({ ...p, nationalCode: e.target.value }))} />
+          <TextInput
+            dir="ltr"
+            value={values.nationalCode}
+            className="text-right"
+            onChange={(e) => setValues((p) => ({ ...p, nationalCode: e.target.value }))}
+          />
         </Field>
         <Field label="موبایل (اختیاری)">
-          <TextInput dir="ltr" value={values.mobile} className="text-right"
-            onChange={(e) => setValues((p) => ({ ...p, mobile: e.target.value }))} />
+          <TextInput
+            dir="ltr"
+            value={values.mobile}
+            className="text-right"
+            onChange={(e) => setValues((p) => ({ ...p, mobile: e.target.value }))}
+          />
         </Field>
       </div>
       {!editing && (

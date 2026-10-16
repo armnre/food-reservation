@@ -34,7 +34,6 @@ export async function withArgon2Gate<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
-
 /** پارامترهای argon2 — از env قابل تنظیم (تست‌ها با هزینهٔ کم اجرا می‌شوند) */
 export const ARGON2_OPTIONS = {
   type: 2 as const,

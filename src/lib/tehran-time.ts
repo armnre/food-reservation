@@ -42,12 +42,43 @@ export function todayTehran(): Date {
 }
 
 /**
+ * کلید روز تهران از ورودی انعطاف‌پذیر.
+ * از فاز ۱-۴ ستون menus.date نوع `date` است و مقدار آن رشتهٔ YYYY-MM-DD؛
+ * این تابع هم رشته و هم Date را می‌پذیرد تا هیچ فراخوانی مجبور به تبدیل دستی نباشد.
+ */
+export function toDayKey(day: string | Date): string {
+  if (typeof day === 'string') {
+    const key = day.slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) throw new Error(`کلید روز نامعتبر: ${day}`);
+    return key;
+  }
+  return tehranDayKey(day);
+}
+
+/** نیمه‌شب تهران برای یک روز منو (رشته یا Date) */
+export function startOfMenuDay(day: string | Date): Date {
+  return tehranMidnight(toDayKey(day));
+}
+
+/**
  * لحظهٔ شروع وعده — از «روز تقویمی Tehran منو» و «ساعت وعده».
  * ساعت وعده به‌صورت timestamp در روز ۱۹۷۰-۰۱-۰۱ ذخیره می‌شود؛
  * ساعت آن (نمای UTC) به‌عنوان ساعت دیواری تهران تفسیر می‌شود.
  */
-export function mealInstant(day: Date, slot: Date): Date {
-  const dayKey = tehranDayKey(day);
+export function mealInstant(day: string | Date, slot: Date): Date {
+  const dayKey = toDayKey(day);
   const time = slot.toISOString().slice(11, 19);
   return new Date(`${dayKey}T${time}${TEHRAN_OFFSET}`);
+}
+
+/** لحظهٔ پایان وعده — همان قاعدهٔ mealInstant با ساعت پایان */
+export function mealEndInstant(day: string | Date, slotEndTime: Date): Date {
+  return mealInstant(day, slotEndTime);
+}
+
+/** فاصلهٔ روز بین دو کلید روز (مثلاً برای بازهٔ هفته) */
+export function addDaysToKey(dayKey: string, days: number): string {
+  const base = tehranMidnight(dayKey);
+  base.setUTCDate(base.getUTCDate() + days);
+  return tehranDayKey(base);
 }

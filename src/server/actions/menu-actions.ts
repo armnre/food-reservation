@@ -3,10 +3,21 @@
 import { requireRole } from '@/server/dal/auth';
 import { ROLES } from '@/lib/permissions';
 import {
-  createFood, updateFood, toggleFood, upsertMealSlot, getOrCreateMenu,
-  upsertMenuItem, removeMenuItem, publishMenu, closeMenu, revertMenuToDraft,
-  setReservationWindow, copyMenu, copyPreviousWeek,
-  type FoodCategory, type MenuItemPriceInput,
+  createFood,
+  updateFood,
+  toggleFood,
+  upsertMealSlot,
+  getOrCreateMenu,
+  upsertMenuItem,
+  removeMenuItem,
+  publishMenu,
+  closeMenu,
+  revertMenuToDraft,
+  setReservationWindow,
+  copyMenu,
+  copyPreviousWeek,
+  type FoodCategory,
+  type MenuItemPriceInput,
 } from '@/server/services/menu';
 import { db } from '@/db';
 import { menuItems, menuItemPrices, foods } from '@/db/schema';
@@ -17,7 +28,12 @@ import { audit } from '@/lib/audit';
 async function actor() {
   const ctx = await requireRole(ROLES.NUTRITION_MANAGER, ROLES.SUPER_ADMIN);
   return {
-    actor: { id: ctx.user.id, role: ctx.user.role, ip: null as string | null, userAgent: null as string | null },
+    actor: {
+      id: ctx.user.id,
+      role: ctx.user.role,
+      ip: null as string | null,
+      userAgent: null as string | null,
+    },
     ctx,
   };
 }
@@ -49,9 +65,7 @@ export async function createFoodAction(input: {
       a,
       image,
     );
-    return res.ok
-      ? { ok: true as const, id: res.id }
-      : { ok: false as const, error: res.error };
+    return res.ok ? { ok: true as const, id: res.id } : { ok: false as const, error: res.error };
   } catch (e) {
     return { ok: false as const, error: (e as Error).message };
   }
@@ -134,9 +148,10 @@ export async function getMenuItemDetailAction(menuId: string) {
     await actor();
     const items = await db.select().from(menuItems).where(eq(menuItems.menuId, menuId));
     const ids = items.map((i) => i.id);
-    const prices = ids.length > 0
-      ? await db.select().from(menuItemPrices).where(inArray(menuItemPrices.menuItemId, ids))
-      : [];
+    const prices =
+      ids.length > 0
+        ? await db.select().from(menuItemPrices).where(inArray(menuItemPrices.menuItemId, ids))
+        : [];
     const foodRows = await db.select().from(foods).where(isNull(foods.deletedAt));
     const foodById = new Map(foodRows.map((f) => [f.id, f]));
 
@@ -151,10 +166,12 @@ export async function getMenuItemDetailAction(menuId: string) {
           category: f?.category ?? 'MAIN',
           capacity: i.capacity,
           reservedCount: i.reservedCount,
-          prices: prices.filter((p) => p.menuItemId === i.id).map((p) => ({
-            customerGroup: p.customerGroup,
-            priceRials: p.priceRials,
-          })),
+          prices: prices
+            .filter((p) => p.menuItemId === i.id)
+            .map((p) => ({
+              customerGroup: p.customerGroup,
+              priceRials: p.priceRials,
+            })),
         };
       }),
     };
@@ -235,7 +252,11 @@ export async function revertMenuAction(menuId: string) {
   }
 }
 
-export async function copyMenuAction(input: { sourceMenuId: string; targetDate: string; targetSlotId: string }) {
+export async function copyMenuAction(input: {
+  sourceMenuId: string;
+  targetDate: string;
+  targetSlotId: string;
+}) {
   try {
     const { actor: a } = await actor();
     const res = await copyMenu(input.sourceMenuId, new Date(input.targetDate), input.targetSlotId, a);

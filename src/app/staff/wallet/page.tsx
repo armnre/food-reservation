@@ -10,10 +10,7 @@ export default async function StaffWalletPage() {
 
   return (
     <div>
-      <PageHeader
-        title="کیف پول من"
-        description="موجودی، شارژ، درخواست برداشت و تاریخچهٔ تراکنش‌ها"
-      />
+      <PageHeader title="کیف پول من" description="موجودی، شارژ، درخواست برداشت و تاریخچهٔ تراکنش‌ها" />
       <WalletStudent
         balanceRials={data.balanceRials}
         ledger={data.ledger}

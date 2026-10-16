@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { rialToToman, tomanToRial, formatToman, formatRial, parseTomanInput, isNonNegativeRial } from '../lib/money';
+import {
+  rialToToman,
+  tomanToRial,
+  formatToman,
+  formatRial,
+  parseTomanInput,
+  isNonNegativeRial,
+} from '../lib/money';
 import { toJalali, fromJalali } from '../lib/jalali';
 import { toPersianDigits } from '../lib/validation';
 

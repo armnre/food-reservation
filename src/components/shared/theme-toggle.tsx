@@ -1,5 +1,40 @@
 'use client';
 import { useSyncExternalStore } from 'react';
 import { Moon, Sun } from 'lucide-react';
-function subscribe(callback:()=>void){window.addEventListener('themechange',callback);const media=window.matchMedia('(prefers-color-scheme: dark)');const change=()=>{if(!localStorage.getItem('theme')){document.documentElement.dataset.theme=media.matches?'dark':'light';callback()}};media.addEventListener('change',change);return()=>{window.removeEventListener('themechange',callback);media.removeEventListener('change',change)}}
-export function ThemeToggle(){const dark=useSyncExternalStore(subscribe,()=>document.documentElement.dataset.theme==='dark',()=>false);return <button type="button" className="icon-button" aria-label={dark?'فعال کردن حالت روشن':'فعال کردن حالت تیره'} onClick={()=>{const theme=dark?'light':'dark';document.documentElement.dataset.theme=theme;localStorage.setItem('theme',theme);window.dispatchEvent(new Event('themechange'))}}>{dark?<Sun size={18}/>:<Moon size={18}/>}</button>}
+function subscribe(callback: () => void) {
+  window.addEventListener('themechange', callback);
+  const media = window.matchMedia('(prefers-color-scheme: dark)');
+  const change = () => {
+    if (!localStorage.getItem('theme')) {
+      document.documentElement.dataset.theme = media.matches ? 'dark' : 'light';
+      callback();
+    }
+  };
+  media.addEventListener('change', change);
+  return () => {
+    window.removeEventListener('themechange', callback);
+    media.removeEventListener('change', change);
+  };
+}
+export function ThemeToggle() {
+  const dark = useSyncExternalStore(
+    subscribe,
+    () => document.documentElement.dataset.theme === 'dark',
+    () => false,
+  );
+  return (
+    <button
+      type="button"
+      className="icon-button"
+      aria-label={dark ? 'فعال کردن حالت روشن' : 'فعال کردن حالت تیره'}
+      onClick={() => {
+        const theme = dark ? 'light' : 'dark';
+        document.documentElement.dataset.theme = theme;
+        localStorage.setItem('theme', theme);
+        window.dispatchEvent(new Event('themechange'));
+      }}
+    >
+      {dark ? <Sun size={18} /> : <Moon size={18} />}
+    </button>
+  );
+}

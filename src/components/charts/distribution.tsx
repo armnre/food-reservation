@@ -2,8 +2,17 @@
 
 import React from 'react';
 import {
-  PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  Legend,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
 } from 'recharts';
 
 const PALETTE = ['#3A2D7D', '#66469A', '#F08020', '#B8A3DB', '#D66815', '#9679C9', '#743716'];
@@ -46,7 +55,9 @@ export function DistributionPie({ data }: { data: { name: string; value: number 
             verticalAlign="bottom"
             height={44}
             formatter={(value: string) => (
-              <span style={{ fontFamily: 'Vazirmatn, sans-serif', fontSize: 11, color: '#6b5e82' }}>{value}</span>
+              <span style={{ fontFamily: 'Vazirmatn, sans-serif', fontSize: 11, color: '#6b5e82' }}>
+                {value}
+              </span>
             )}
           />
         </PieChart>
@@ -55,7 +66,13 @@ export function DistributionPie({ data }: { data: { name: string; value: number 
   );
 }
 
-export function DistributionBar({ data, color = '#3A2D7D' }: { data: { name: string; value: number }[]; color?: string }) {
+export function DistributionBar({
+  data,
+  color = '#3A2D7D',
+}: {
+  data: { name: string; value: number }[];
+  color?: string;
+}) {
   if (data.length === 0) {
     return (
       <div className="flex h-64 items-center justify-center text-sm text-[var(--color-foreground-muted)]">

@@ -5,7 +5,17 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useNow } from '@/components/shared/use-now';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Flame, Tag, Users, Clock, Sparkles, ShoppingCart, CheckCircle2, Wallet, XCircle } from 'lucide-react';
+import {
+  Flame,
+  Tag,
+  Users,
+  Clock,
+  Sparkles,
+  ShoppingCart,
+  CheckCircle2,
+  Wallet,
+  XCircle,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/data';
 import { Button } from '@/components/ui/button';
 import { EmptyState, ConfirmDialog, useToast } from '@/components/ui/feedback';
@@ -39,8 +49,12 @@ interface WeekCell {
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
-  MAIN: 'غذای اصلی', SIDE: 'میان‌وعده', SALAD: 'سالاد',
-  DESSERT: 'دسر', DRINK: 'نوشیدنی', OTHER: 'سایر',
+  MAIN: 'غذای اصلی',
+  SIDE: 'میان‌وعده',
+  SALAD: 'سالاد',
+  DESSERT: 'دسر',
+  DRINK: 'نوشیدنی',
+  OTHER: 'سایر',
 };
 
 function useReserveState() {
@@ -49,7 +63,13 @@ function useReserveState() {
 }
 
 export function WeekMenuClient({
-  days, slots, cells, groupLabel, walletBalanceRials, myReservedItemIds, walletHref,
+  days,
+  slots,
+  cells,
+  groupLabel,
+  walletBalanceRials,
+  myReservedItemIds,
+  walletHref,
 }: {
   days: string[];
   slots: { id: string; name: string }[];
@@ -85,7 +105,10 @@ export function WeekMenuClient({
     router.refresh();
   }
 
-  function reserveState(item: WeekItem, cell: WeekCell): {
+  function reserveState(
+    item: WeekItem,
+    cell: WeekCell,
+  ): {
     label: string;
     disabled: boolean;
     variant: 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -96,18 +119,38 @@ export function WeekMenuClient({
     }
     const remaining = item.capacity - item.reservedCount;
     if (remaining <= 0) {
-      return { label: 'ظرفیت تکمیل', disabled: true, variant: 'ghost', reason: 'ظرفیت این غذا تکمیل شده است' };
+      return {
+        label: 'ظرفیت تکمیل',
+        disabled: true,
+        variant: 'ghost',
+        reason: 'ظرفیت این غذا تکمیل شده است',
+      };
     }
 
     if (cell.reservationOpensAt && now < new Date(cell.reservationOpensAt).getTime()) {
-      return { label: 'هنوز آغاز نشده', disabled: true, variant: 'ghost', reason: 'زمان رزرو هنوز شروع نشده است' };
+      return {
+        label: 'هنوز آغاز نشده',
+        disabled: true,
+        variant: 'ghost',
+        reason: 'زمان رزرو هنوز شروع نشده است',
+      };
     }
     if (cell.reservationClosesAt && now > new Date(cell.reservationClosesAt).getTime()) {
-      return { label: 'زمان تمام شده', disabled: true, variant: 'ghost', reason: 'زمان رزرو این وعده به پایان رسیده است' };
+      return {
+        label: 'زمان تمام شده',
+        disabled: true,
+        variant: 'ghost',
+        reason: 'زمان رزرو این وعده به پایان رسیده است',
+      };
     }
     const price = item.prices[0]?.priceRials ?? 0;
     if (walletBalanceRials < price) {
-      return { label: 'موجودی ناکافی', disabled: true, variant: 'danger', reason: 'موجودی کیف پول کافی نیست' };
+      return {
+        label: 'موجودی ناکافی',
+        disabled: true,
+        variant: 'danger',
+        reason: 'موجودی کیف پول کافی نیست',
+      };
     }
     return { label: `رزرو — ${formatToman(price)}`, disabled: false, variant: 'primary' };
   }
@@ -139,11 +182,13 @@ export function WeekMenuClient({
         return (
           <section key={dayIso} className="scroll-mt-24">
             <header className="mb-4 flex items-center gap-3">
-              <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl ${
-                isToday
-                  ? 'bg-gradient-to-br from-[var(--color-brand-700)] to-[var(--color-brand-950)] text-white shadow-[0_8px_20px_rgba(58,45,125,0.28)]'
-                  : 'border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-foreground)]'
-              }`}>
+              <div
+                className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl ${
+                  isToday
+                    ? 'bg-gradient-to-br from-[var(--color-brand-700)] to-[var(--color-brand-950)] text-white shadow-[0_8px_20px_rgba(58,45,125,0.28)]'
+                    : 'border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-foreground)]'
+                }`}
+              >
                 <div className="text-center leading-none">
                   <p className="text-[9px] opacity-70">{toPersianDigits(d.getMonth() + 1)}</p>
                   <p className="text-base font-bold">{toPersianDigits(d.getDate())}</p>
@@ -152,7 +197,11 @@ export function WeekMenuClient({
               <div>
                 <h2 className="flex items-center gap-2 text-base font-bold">
                   {PERSIAN_WEEKDAYS[dayIndex % 7]}
-                  {isToday && <Badge variant="accent"><Sparkles size={10} /> امروز</Badge>}
+                  {isToday && (
+                    <Badge variant="accent">
+                      <Sparkles size={10} /> امروز
+                    </Badge>
+                  )}
                   {isPast && <Badge variant="muted">گذشته</Badge>}
                 </h2>
                 <p className="mt-0.5 text-xs text-[var(--color-foreground-muted)]">
@@ -206,7 +255,9 @@ export function WeekMenuClient({
                                   sizes="74px"
                                 />
                               ) : (
-                                <div className="grid h-full w-full place-items-center text-2xl opacity-35">🍽</div>
+                                <div className="grid h-full w-full place-items-center text-2xl opacity-35">
+                                  🍽
+                                </div>
                               )}
                             </div>
 
@@ -215,7 +266,9 @@ export function WeekMenuClient({
                                 <div className="min-w-0">
                                   <h4 className="truncate text-[13px] font-bold">{item.foodName}</h4>
                                   <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                                    <Badge variant="muted">{CATEGORY_LABELS[item.category] ?? item.category}</Badge>
+                                    <Badge variant="muted">
+                                      {CATEGORY_LABELS[item.category] ?? item.category}
+                                    </Badge>
                                     {item.calories ? (
                                       <span className="inline-flex items-center gap-1 text-[10px] text-[var(--color-foreground-muted)]">
                                         <Flame size={10} /> {toPersianDigits(item.calories)} کالری
@@ -235,7 +288,10 @@ export function WeekMenuClient({
 
                               <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
                                 {item.tags.slice(0, 3).map((t) => (
-                                  <span key={t} className="inline-flex items-center gap-1 rounded-full bg-[var(--color-muted)] px-2 py-0.5 text-[9px] text-[var(--color-foreground-muted)]">
+                                  <span
+                                    key={t}
+                                    className="inline-flex items-center gap-1 rounded-full bg-[var(--color-muted)] px-2 py-0.5 text-[9px] text-[var(--color-foreground-muted)]"
+                                  >
                                     <Tag size={8} /> {t}
                                   </span>
                                 ))}
@@ -256,7 +312,13 @@ export function WeekMenuClient({
                                     variant={state.variant}
                                     disabled={state.disabled}
                                     loading={busyId === item.id}
-                                    icon={state.disabled && state.reason?.includes('موجودی') ? <Wallet size={14} /> : <ShoppingCart size={14} />}
+                                    icon={
+                                      state.disabled && state.reason?.includes('موجودی') ? (
+                                        <Wallet size={14} />
+                                      ) : (
+                                        <ShoppingCart size={14} />
+                                      )
+                                    }
                                     onClick={() => setConfirmItem(item)}
                                     block
                                   >
@@ -264,7 +326,9 @@ export function WeekMenuClient({
                                   </Button>
                                 )}
                                 {state.disabled && state.reason && !alreadyReserved && (
-                                  <p className="mt-1.5 text-[10px] text-[var(--color-foreground-muted)]">{state.reason}</p>
+                                  <p className="mt-1.5 text-[10px] text-[var(--color-foreground-muted)]">
+                                    {state.reason}
+                                  </p>
                                 )}
                               </div>
                             </div>
@@ -287,8 +351,8 @@ export function WeekMenuClient({
         <div>
           <p className="text-xs font-bold text-[var(--color-accent-900)]">رزرو آسان، بدون صف</p>
           <p className="mt-1.5 text-[11px] leading-loose text-[var(--color-accent-800)]">
-            با کلیک روی «رزرو»، مبلغ از کیف پول شما کسر و رزرو ثبت می‌شود. برای دریافت غذا، QR صفحهٔ
-            «رزروهای من» را به اپراتور سلف نشان دهید.
+            با کلیک روی «رزرو»، مبلغ از کیف پول شما کسر و رزرو ثبت می‌شود. برای دریافت غذا، QR صفحهٔ «رزروهای
+            من» را به اپراتور سلف نشان دهید.
           </p>
         </div>
       </div>
